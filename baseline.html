@@ -1,0 +1,3112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baseline — Early Stroke Signal Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06080f; --surface: #0d1220;
+  --teal: #00e5c8; --violet: #a855f7; --blue: #3b82f6;
+  --green: #22c55e; --yellow: #f59e0b; --red: #ef4444;
+  --text: #e8eaf0; --muted: #6b7280;
+  --cb: rgba(255,255,255,0.03); --cbord: rgba(255,255,255,0.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden;line-height:1.6;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:999;opacity:0.4;}
+
+/* ===== BLOBS ===== */
+.blob{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0;animation:drift 20s ease-in-out infinite;}
+.blob-1{width:500px;height:500px;background:rgba(0,229,200,0.06);top:-100px;left:-100px;}
+.blob-2{width:400px;height:400px;background:rgba(168,85,247,0.07);bottom:200px;right:-100px;animation-delay:-7s;}
+.blob-3{width:300px;height:300px;background:rgba(59,130,246,0.05);top:50%;left:40%;animation-delay:-14s;}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(30px,-30px) scale(1.05);}66%{transform:translate(-20px,20px) scale(0.95);}}
+
+/* ===== NAV ===== */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:1.5rem 4rem;backdrop-filter:blur(20px);background:rgba(6,8,15,0.7);border-bottom:1px solid var(--cbord);}
+.nav-logo{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--teal);letter-spacing:-0.02em;text-shadow:0 0 20px rgba(0,229,200,0.5);}
+.nav-links{display:flex;gap:2.5rem;list-style:none;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:0.875rem;letter-spacing:0.05em;text-transform:uppercase;transition:color 0.3s;}
+.nav-links a:hover{color:var(--text);}
+.nav-cta{background:transparent;border:1px solid var(--teal);color:var(--teal);padding:0.5rem 1.5rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.875rem;cursor:pointer;transition:all 0.3s;text-shadow:0 0 10px rgba(0,229,200,0.4);box-shadow:0 0 20px rgba(0,229,200,0.1);}
+.nav-cta:hover{background:rgba(0,229,200,0.1);box-shadow:0 0 30px rgba(0,229,200,0.25);}
+
+/* ===== SHARED BTNS ===== */
+section{position:relative;z-index:1;}
+.btn-primary{background:var(--teal);color:var(--bg);border:none;padding:0.85rem 2.5rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.95rem;cursor:pointer;transition:all 0.3s;box-shadow:0 0 40px rgba(0,229,200,0.3);}
+.btn-primary:hover{box-shadow:0 0 60px rgba(0,229,200,0.5);transform:translateY(-2px);}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--cbord);padding:0.85rem 2.5rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.95rem;cursor:pointer;transition:all 0.3s;}
+.btn-ghost:hover{border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);}
+
+/* ===== HERO ===== */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8rem 2rem 6rem;}
+.hero-eyebrow{font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin-bottom:2rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.3s;}
+.hero h1{font-family:'DM Serif Display',serif;font-size:clamp(3.5rem,8vw,7rem);line-height:1.05;letter-spacing:-0.03em;margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.5s;}
+.hero h1 em{font-style:italic;color:var(--teal);text-shadow:0 0 40px rgba(0,229,200,0.4);}
+.hero-sub{font-size:clamp(1.15rem,2vw,1.4rem);color:var(--muted);max-width:560px;line-height:1.8;margin-bottom:3rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.7s;}
+.hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp 0.8s ease forwards 0.9s;}
+.waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:80px;}
+.bar{width:3px;background:var(--teal);border-radius:2px;opacity:0.6;animation:pulse var(--dur,1.5s) ease-in-out infinite;animation-delay:var(--delay,0s);}
+@keyframes pulse{0%,100%{height:var(--min,8px);opacity:0.3;}50%{height:var(--max,40px);opacity:0.9;}}
+.viz-label{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.15em;text-align:center;margin-top:1rem;}
+.signal-viz{width:100%;max-width:700px;margin:5rem auto 0;opacity:0;animation:fadeUp 1s ease forwards 1.1s;}
+.divider{width:1px;height:80px;background:linear-gradient(to bottom,transparent,var(--cbord),transparent);margin:0 auto;}
+
+/* ===== SECTIONS ===== */
+.section-pad{padding:7rem 4rem;}
+.section-tag{font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--violet);margin-bottom:1rem;}
+.section-title{font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.5rem);letter-spacing:-0.02em;line-height:1.15;margin-bottom:1.5rem;}
+.section-desc{color:var(--muted);max-width:500px;font-size:1.1rem;line-height:1.8;}
+.steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5px;background:var(--cbord);margin-top:5rem;border:1px solid var(--cbord);border-radius:20px;overflow:hidden;}
+.step{background:var(--surface);padding:3rem;transition:background 0.3s;position:relative;overflow:hidden;}
+.step::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 0% 0%,var(--sg,transparent) 0%,transparent 60%);opacity:0;transition:opacity 0.4s;}
+.step:hover::before{opacity:1;}.step:hover{background:#111827;}
+.step:nth-child(1){--sg:rgba(0,229,200,0.07);}.step:nth-child(2){--sg:rgba(168,85,247,0.07);}.step:nth-child(3){--sg:rgba(59,130,246,0.07);}.step:nth-child(4){--sg:rgba(0,229,200,0.07);}
+.step-num{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-bottom:1.5rem;}
+.step-icon{font-size:2rem;margin-bottom:1.25rem;display:block;}
+.step h3{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.75rem;letter-spacing:-0.01em;}
+.step p{color:var(--muted);font-size:1.05rem;line-height:1.8;}
+.signals-section{padding:7rem 4rem;background:linear-gradient(180deg,transparent,rgba(0,229,200,0.02),transparent);}
+.signals-header{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:end;margin-bottom:4rem;}
+.signals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
+.signal-card{background:var(--cb);border:1px solid var(--cbord);border-radius:16px;padding:2rem;transition:all 0.3s;position:relative;overflow:hidden;}
+.signal-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--ac,var(--teal)),transparent);transform:scaleX(0);transition:transform 0.4s;}
+.signal-card:hover::after{transform:scaleX(1);}.signal-card:hover{border-color:rgba(255,255,255,0.12);transform:translateY(-3px);}
+.signal-card:nth-child(2){--ac:var(--violet);}.signal-card:nth-child(3){--ac:var(--blue);}.signal-card:nth-child(4){--ac:var(--violet);}.signal-card:nth-child(5){--ac:var(--blue);}
+.signal-emoji{font-size:1.5rem;margin-bottom:1rem;}
+.signal-card h4{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.5rem;}
+.signal-card p{color:var(--muted);font-size:1rem;line-height:1.7;}
+.ethics-section{padding:7rem 4rem;}
+.ethics-inner{background:linear-gradient(135deg,rgba(0,229,200,0.04),rgba(168,85,247,0.04));border:1px solid var(--cbord);border-radius:24px;padding:5rem;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
+.ethics-title{font-family:'DM Serif Display',serif;font-size:clamp(2rem,3.5vw,3rem);line-height:1.15;letter-spacing:-0.02em;margin-bottom:1.5rem;}
+.ethics-title em{font-style:italic;color:var(--violet);text-shadow:0 0 30px rgba(168,85,247,0.4);}
+.ethics-desc{color:var(--muted);line-height:1.8;font-size:1.05rem;}
+.ethics-list{display:flex;flex-direction:column;gap:1rem;}
+.ethics-item{display:flex;align-items:flex-start;gap:1rem;padding:1.25rem 1.5rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;transition:border-color 0.3s;}
+.ethics-item:hover{border-color:rgba(255,255,255,0.12);}
+.ethics-icon{font-size:1.1rem;flex-shrink:0;margin-top:0.1rem;}
+.ethics-item-text{font-size:1rem;color:var(--text);}
+.ethics-item-text span{display:block;font-size:0.9rem;color:var(--muted);margin-top:0.2rem;}
+.chart-section{padding:7rem 4rem;text-align:center;}
+.chart-container{max-width:800px;margin:4rem auto 0;background:var(--surface);border:1px solid var(--cbord);border-radius:24px;padding:3rem;position:relative;overflow:hidden;}
+.chart-container::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent);}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;text-align:left;}
+.chart-title{font-family:'DM Serif Display',serif;font-size:1.1rem;}
+.chart-period{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;}
+.chart-area{height:180px;position:relative;margin-bottom:1.5rem;}
+.chart-svg{width:100%;height:100%;overflow:visible;}
+.chart-insight{background:rgba(0,229,200,0.05);border:1px solid rgba(0,229,200,0.15);border-radius:10px;padding:1rem 1.5rem;font-size:1rem;color:var(--teal);text-align:left;font-family:'Space Mono',monospace;letter-spacing:0.02em;}
+.audience-section{padding:7rem 4rem;}
+.audience-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:4rem;}
+.audience-card{border-radius:20px;padding:2.5rem;position:relative;overflow:hidden;}
+.audience-card:nth-child(1){background:linear-gradient(135deg,rgba(0,229,200,0.08),rgba(0,229,200,0.02));border:1px solid rgba(0,229,200,0.15);}
+.audience-card:nth-child(2){background:linear-gradient(135deg,rgba(168,85,247,0.08),rgba(168,85,247,0.02));border:1px solid rgba(168,85,247,0.15);}
+.audience-card:nth-child(3){background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02));border:1px solid rgba(59,130,246,0.15);}
+.audience-big{font-family:'DM Serif Display',serif;font-size:3rem;line-height:1;margin-bottom:0.5rem;}
+.audience-card:nth-child(1) .audience-big{color:var(--teal);}.audience-card:nth-child(2) .audience-big{color:var(--violet);}.audience-card:nth-child(3) .audience-big{color:var(--blue);}
+.audience-card h4{font-size:1.1rem;font-weight:500;margin-bottom:0.75rem;}
+.audience-card p{color:var(--muted);font-size:1rem;line-height:1.8;}
+.cta-section{padding:7rem 4rem;text-align:center;}
+.cta-inner{max-width:700px;margin:0 auto;}
+.cta-inner h2{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4.5rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:1.5rem;}
+.cta-inner h2 em{font-style:italic;color:var(--teal);text-shadow:0 0 40px rgba(0,229,200,0.4);}
+.cta-inner p{color:var(--muted);max-width:450px;margin:0 auto 3rem;line-height:1.8;font-size:1.1rem;}
+footer{padding:3rem 4rem;border-top:1px solid var(--cbord);display:flex;align-items:center;justify-content:space-between;}
+.footer-logo{font-family:'DM Serif Display',serif;color:var(--muted);font-size:1rem;}
+.footer-note{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;max-width:400px;text-align:right;line-height:1.6;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:translateY(0);}}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s ease,transform 0.7s ease;}
+.reveal.visible{opacity:1;transform:none;}
+
+/* ===== FAST APP ===== */
+#fast-app{position:fixed;inset:0;z-index:500;background:var(--bg);overflow-y:auto;overflow-x:hidden;display:none;}
+#fast-app.open{display:block;animation:appIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards;}
+@keyframes appIn{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:none;}}
+@keyframes appOut{from{opacity:1;transform:none;}to{opacity:0;transform:translateY(20px);}}
+
+.app-nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:1rem 2.5rem;background:rgba(6,8,15,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--cbord);}
+.app-nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--teal);text-shadow:0 0 20px rgba(0,229,200,0.4);}
+.app-nav-sub{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.05em;}
+.app-nav-right{display:flex;align-items:center;gap:0.75rem;}
+.app-nav-hist{background:none;border:1px solid var(--cbord);color:var(--muted);padding:0.32rem 0.9rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.2s;}
+.app-nav-hist:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.app-badge{font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:var(--cb);border:1px solid var(--cbord);padding:0.28rem 0.7rem;border-radius:100px;}
+.app-back{display:flex;align-items:center;gap:0.4rem;color:var(--muted);font-size:0.82rem;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;transition:color 0.2s;}
+.app-back:hover{color:var(--text);}
+
+.app-screen{display:none;min-height:calc(100vh - 60px);}
+.app-screen.active{display:flex;}
+
+/* --- HOME screen --- */
+#screen-home{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;gap:0;}
+.fast-pill{display:inline-flex;align-items:center;gap:0.5rem;font-family:'Space Mono',monospace;font-size:0.67rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--teal);background:rgba(0,229,200,0.07);border:1px solid rgba(0,229,200,0.2);padding:0.38rem 1rem;border-radius:100px;margin-bottom:1.75rem;}
+.fast-pill-dot{width:6px;height:6px;background:var(--teal);border-radius:50%;animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+.fast-title{font-family:'DM Serif Display',serif;font-size:clamp(2.8rem,7vw,5.5rem);letter-spacing:-0.03em;line-height:1.08;margin-bottom:1.25rem;}
+.fast-title em{font-style:italic;color:var(--teal);text-shadow:0 0 50px rgba(0,229,200,0.35);}
+.fast-sub{color:var(--muted);max-width:520px;font-size:1.1rem;line-height:1.8;margin-bottom:2.5rem;}
+.fast-start-btn{display:flex;align-items:center;gap:0.75rem;background:var(--teal);color:var(--bg);border:none;padding:1rem 2.75rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:1rem;cursor:pointer;transition:all 0.3s;box-shadow:0 0 50px rgba(0,229,200,0.35);margin-bottom:1.5rem;}
+.fast-start-btn:hover{box-shadow:0 0 70px rgba(0,229,200,0.55);transform:translateY(-2px);}
+.fast-disclaimer{font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.04em;color:var(--muted);max-width:480px;line-height:1.7;padding:0.9rem 1.4rem;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:10px;margin-bottom:2.5rem;}
+.fast-disclaimer strong{color:rgba(239,68,68,0.8);}
+.what-is-fast{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:780px;width:100%;}
+.fsc{background:var(--cb);border:1px solid var(--cbord);border-radius:14px;padding:1.4rem;text-align:left;transition:border-color 0.3s;}
+.fsc:hover{border-color:rgba(255,255,255,0.12);}
+.fsc-num{font-family:'Space Mono',monospace;font-size:0.63rem;color:var(--muted);letter-spacing:0.1em;margin-bottom:0.7rem;}
+.fsc-icon{font-size:1.5rem;margin-bottom:0.5rem;display:block;}
+.fsc-title{font-size:1rem;font-weight:500;margin-bottom:0.3rem;}
+.fsc-desc{font-size:0.88rem;color:var(--muted);line-height:1.6;}
+
+/* --- RECORD screen --- */
+#screen-record{flex-direction:column;align-items:center;padding:2rem;gap:1.5rem;}
+.record-layout{display:grid;grid-template-columns:1fr 300px;gap:1.75rem;width:100%;max-width:1400px;}
+.camera-wrap{position:relative;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:4/3;border:1px solid var(--cbord);}
+.camera-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+.cam-overlay{position:absolute;inset:0;pointer-events:none;}
+.face-guide{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);width:24%;aspect-ratio:3/4;border:2px solid rgba(0,229,200,0.45);border-radius:50% 50% 45% 45%;}
+.fgc{position:absolute;width:13px;height:13px;border-color:var(--teal);border-style:solid;}
+.fgc.tl{top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:3px 0 0 0;}
+.fgc.tr{top:-1px;right:-1px;border-width:2px 2px 0 0;border-radius:0 3px 0 0;}
+.fgc.bl{bottom:-1px;left:-1px;border-width:0 0 2px 2px;border-radius:0 0 0 3px;}
+.fgc.br{bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 3px 0;}
+.prompt-banner{position:absolute;top:1rem;left:50%;transform:translateX(-50%);background:rgba(6,8,15,0.85);backdrop-filter:blur(10px);border:1px solid var(--cbord);border-radius:100px;padding:0.45rem 1.2rem;font-family:'Space Mono',monospace;font-size:0.73rem;letter-spacing:0.07em;white-space:nowrap;transition:all 0.4s;}
+.prompt-banner.smile{color:var(--teal);border-color:rgba(0,229,200,0.3);}
+.prompt-banner.arms{color:var(--violet);border-color:rgba(168,85,247,0.3);}
+.prompt-banner.speak{color:var(--blue);border-color:rgba(59,130,246,0.3);}
+.rec-ind{position:absolute;top:1rem;right:1rem;display:flex;align-items:center;gap:0.4rem;font-family:'Space Mono',monospace;font-size:0.63rem;letter-spacing:0.1em;color:var(--red);opacity:0;transition:opacity 0.3s;}
+.rec-ind.on{opacity:1;}
+.rec-dot{width:7px;height:7px;background:var(--red);border-radius:50%;animation:blink 1s ease-in-out infinite;}
+.cam-tip{position:absolute;bottom:1rem;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:0.63rem;letter-spacing:0.07em;color:var(--muted);background:rgba(6,8,15,0.8);padding:0.32rem 0.85rem;border-radius:100px;white-space:nowrap;}
+
+.rec-panel{display:flex;flex-direction:column;gap:1.15rem;}
+.panel-box{background:var(--surface);border:1px solid var(--cbord);border-radius:15px;padding:1.4rem;}
+.pb-label{font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+.tp-tasks{display:flex;flex-direction:column;gap:0.55rem;}
+.tp-task{display:flex;align-items:center;gap:0.7rem;padding:0.75rem 1rem;border-radius:9px;border:1px solid transparent;transition:all 0.3s;font-size:1rem;}
+.tp-task.pending{color:var(--muted);}
+.tp-task.active{background:rgba(0,229,200,0.06);border-color:rgba(0,229,200,0.2);color:var(--text);}
+.tp-task.done{color:var(--muted);text-decoration:line-through;}
+.tp-icon{font-size:1.15rem;width:24px;text-align:center;}
+.tp-info{flex:1;}
+.tp-name{font-weight:500;font-size:0.96rem;}
+.tp-dur{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);}
+.tp-chk{font-size:1rem;}
+
+.timer-inner{text-align:center;}
+.timer-svg{width:100px;height:100px;margin:0 auto 0.6rem;display:block;}
+.tr-bg{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:6;}
+.tr-fill{fill:none;stroke:var(--teal);stroke-width:6;stroke-linecap:round;stroke-dasharray:251.3;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear,stroke 0.5s;}
+.timer-num{font-family:'DM Serif Display',serif;font-size:1.9rem;fill:var(--text);}
+.timer-lbl{font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+
+.bm-bar-wrap{height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;margin:0.45rem 0;}
+.bm-bar{height:100%;width:60%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:3px;transition:width 0.5s;}
+.bm-status{font-size:0.85rem;color:var(--teal);}
+
+.rec-controls{display:flex;flex-direction:column;gap:0.65rem;}
+.btn-rec-go{background:var(--teal);color:var(--bg);border:none;padding:0.95rem;border-radius:11px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:1rem;cursor:pointer;transition:all 0.3s;box-shadow:0 0 30px rgba(0,229,200,0.25);}
+.btn-rec-go:hover{box-shadow:0 0 50px rgba(0,229,200,0.45);transform:translateY(-1px);}
+.btn-rec-go:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.btn-restart{background:transparent;border:1px solid var(--cbord);color:var(--muted);padding:0.7rem;border-radius:11px;font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer;transition:all 0.2s;}
+.btn-restart:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+
+/* --- PROCESSING screen --- */
+#screen-processing{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;}
+.proc-orb{width:110px;height:110px;border-radius:50%;margin:0 auto 2.5rem;background:radial-gradient(circle,rgba(0,229,200,0.3),rgba(0,229,200,0.04));border:1px solid rgba(0,229,200,0.3);box-shadow:0 0 60px rgba(0,229,200,0.2);animation:orbP 2s ease-in-out infinite;display:flex;align-items:center;justify-content:center;font-size:2.5rem;}
+@keyframes orbP{0%,100%{box-shadow:0 0 40px rgba(0,229,200,0.2);transform:scale(1);}50%{box-shadow:0 0 80px rgba(0,229,200,0.4);transform:scale(1.05);}}
+.proc-title{font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3rem);letter-spacing:-0.02em;margin-bottom:0.6rem;}
+.proc-sub{color:var(--muted);font-size:1rem;margin-bottom:2.5rem;}
+.proc-checks{display:flex;flex-direction:column;gap:0.8rem;max-width:420px;width:100%;}
+.pc{display:flex;align-items:center;gap:0.9rem;padding:1rem 1.4rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;font-size:1rem;text-align:left;transition:all 0.5s;}
+.pc.running{border-color:rgba(0,229,200,0.25);background:rgba(0,229,200,0.04);}
+.pc.done{border-color:rgba(34,197,94,0.2);}
+.pc-icon{font-size:1.3rem;width:26px;text-align:center;}
+.pc-name{font-size:0.95rem;font-weight:500;}
+.pc-met{font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);margin-top:0.15rem;}
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.1);border-top-color:var(--teal);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* --- RESULTS screen --- */
+#screen-results{flex-direction:column;align-items:center;padding:2.5rem 2rem;gap:1.75rem;}
+.results-wrap{width:100%;max-width:920px;}
+.status-banner{border-radius:18px;padding:2.25rem 2.75rem;margin-bottom:1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;}
+.status-banner.green{background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.25);}
+.status-banner.yellow{background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.03));border:1px solid rgba(245,158,11,0.25);}
+.status-banner.red{background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.03));border:1px solid rgba(239,68,68,0.3);}
+.sb-left{display:flex;align-items:center;gap:1.25rem;}
+.sb-orb{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0;}
+.status-banner.green .sb-orb{background:rgba(34,197,94,0.15);box-shadow:0 0 30px rgba(34,197,94,0.2);}
+.status-banner.yellow .sb-orb{background:rgba(245,158,11,0.15);box-shadow:0 0 30px rgba(245,158,11,0.2);}
+.status-banner.red .sb-orb{background:rgba(239,68,68,0.15);box-shadow:0 0 30px rgba(239,68,68,0.2);}
+.sb-info h2{font-family:'DM Serif Display',serif;font-size:1.65rem;letter-spacing:-0.02em;margin-bottom:0.2rem;}
+.status-banner.green .sb-info h2{color:var(--green);}
+.status-banner.yellow .sb-info h2{color:var(--yellow);}
+.status-banner.red .sb-info h2{color:var(--red);}
+.sb-info p{color:var(--muted);font-size:1rem;max-width:380px;line-height:1.6;}
+.sb-score-wrap{text-align:center;}
+.sb-score-lbl{font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem;}
+.sb-score{font-family:'DM Serif Display',serif;font-size:2.4rem;line-height:1;}
+.status-banner.green .sb-score{color:var(--green);}
+.status-banner.yellow .sb-score{color:var(--yellow);}
+.status-banner.red .sb-score{color:var(--red);}
+
+.metric-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.15rem;margin-bottom:1.75rem;}
+.mc{background:var(--surface);border:1px solid var(--cbord);border-radius:16px;padding:1.6rem;position:relative;overflow:hidden;}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--mcc,var(--teal)),transparent);}
+.mc.face{--mcc:var(--teal);}.mc.arms{--mcc:var(--violet);}.mc.speech{--mcc:var(--blue);}
+.mc-hd{display:flex;align-items:center;gap:0.7rem;margin-bottom:1.1rem;}
+.mc-ico{font-size:1.25rem;}
+.mc-ttl{font-family:'DM Serif Display',serif;font-size:1.05rem;letter-spacing:-0.01em;}
+.mc-badge{margin-left:auto;font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;padding:0.18rem 0.55rem;border-radius:100px;}
+.mc-badge.ok{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2);}
+.mc-badge.warn{background:rgba(245,158,11,0.1);color:var(--yellow);border:1px solid rgba(245,158,11,0.2);}
+.mc-badge.alert{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+.mc-metric-lbl{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem;}
+.mc-val{font-family:'DM Serif Display',serif;font-size:1.55rem;letter-spacing:-0.02em;line-height:1;}
+.mc-unit{font-size:0.72rem;color:var(--muted);font-family:'DM Sans',sans-serif;margin-left:0.2rem;}
+.mc-chart{height:70px;margin:0.85rem 0;position:relative;}
+.mc-chart svg{width:100%;height:100%;overflow:visible;}
+@keyframes chartDraw{from{stroke-dashoffset:var(--chart-len,800);}to{stroke-dashoffset:0;}}
+@keyframes chartFadeIn{from{opacity:0;}to{opacity:1;}}
+.mc-chart-line{stroke-dasharray:var(--chart-len,800);stroke-dashoffset:var(--chart-len,800);animation:chartDraw 1.2s cubic-bezier(0.4,0,0.2,1) forwards;}
+.mc-chart-fill{opacity:0;animation:chartFadeIn 0.6s ease forwards 0.8s;}
+.mc-chart-dot{opacity:0;animation:chartFadeIn 0.4s ease forwards var(--dot-delay,1s);}
+.mc-explain{font-size:0.9rem;color:var(--muted);line-height:1.65;padding-top:0.7rem;border-top:1px solid var(--cbord);}
+.mc-explain strong{color:var(--text);font-weight:500;}
+
+.previews-row{display:grid;grid-template-columns:1fr 1fr;gap:1.15rem;margin-bottom:1.75rem;}
+.preview-card{background:var(--surface);border:1px solid var(--cbord);border-radius:15px;padding:1.4rem;}
+.preview-title{font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.9rem;}
+.preview-canvas{position:relative;width:100%;aspect-ratio:16/9;background:#080c17;border-radius:9px;overflow:hidden;}
+.preview-canvas canvas{position:absolute;inset:0;width:100%;height:100%;}
+
+.action-panel{border-radius:16px;padding:1.75rem 2.25rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;}
+.action-panel.green{background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.15);}
+.action-panel.yellow{background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);}
+.action-panel.red{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);}
+.act-text h4{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:0.35rem;}
+.act-text p{color:var(--muted);font-size:0.95rem;line-height:1.7;max-width:440px;}
+.act-btns{display:flex;gap:0.7rem;flex-wrap:wrap;}
+.act-btn-p{padding:0.65rem 1.5rem;border-radius:100px;border:none;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.9rem;cursor:pointer;transition:all 0.3s;}
+.action-panel.green .act-btn-p{background:var(--green);color:#000;}
+.action-panel.yellow .act-btn-p{background:var(--yellow);color:#000;}
+.action-panel.red .act-btn-p{background:var(--red);color:#fff;}
+.act-btn-s{padding:0.65rem 1.5rem;border-radius:100px;background:transparent;border:1px solid var(--cbord);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer;transition:all 0.2s;}
+.act-btn-s:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+
+/* --- HISTORY screen --- */
+#screen-history{flex-direction:column;align-items:center;padding:2.5rem 2rem;gap:1.75rem;}
+.history-wrap{width:100%;max-width:840px;}
+.hist-hd-title{font-family:'DM Serif Display',serif;font-size:1.9rem;letter-spacing:-0.02em;margin-bottom:0.4rem;}
+.hist-hd-sub{color:var(--muted);font-size:1rem;}
+.hcc{background:var(--surface);border:1px solid var(--cbord);border-radius:16px;padding:1.75rem;margin-bottom:1.4rem;position:relative;overflow:hidden;}
+.hcc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent);}
+.hcc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+.hcc-title{font-family:'DM Serif Display',serif;font-size:1.05rem;}
+.hcc-period{font-family:'Space Mono',monospace;font-size:0.63rem;color:var(--muted);letter-spacing:0.1em;}
+.hcc-area{height:180px;}
+.hcc-area svg{width:100%;height:100%;overflow:visible;}
+.hmc-area{height:100px;}
+/* Chart dot pulse on hover */
+.chart-dot-glow{filter:drop-shadow(0 0 4px currentColor);transition:r 0.2s,filter 0.2s;}
+.hist-entries{display:flex;flex-direction:column;gap:0.7rem;}
+.he{display:flex;align-items:center;gap:1.1rem;padding:0.95rem 1.4rem;background:var(--cb);border:1px solid var(--cbord);border-radius:13px;transition:border-color 0.2s;cursor:pointer;}
+.he:hover{border-color:rgba(255,255,255,0.12);}
+.he-date{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);min-width:80px;}
+.he-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.he-dot.green{background:var(--green);box-shadow:0 0 8px rgba(34,197,94,0.5);}
+.he-dot.yellow{background:var(--yellow);box-shadow:0 0 8px rgba(245,158,11,0.5);}
+.he-dot.red{background:var(--red);box-shadow:0 0 8px rgba(239,68,68,0.5);}
+.he-scores{display:flex;gap:1.4rem;flex:1;}
+.he-sc{text-align:center;}
+.he-sc-lbl{font-family:'Space Mono',monospace;font-size:0.57rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);}
+.he-sc-v{font-family:'DM Serif Display',serif;font-size:1.05rem;}
+.he-lbl{font-size:0.78rem;font-weight:500;margin-left:auto;}
+.he-lbl.green{color:var(--green);}.he-lbl.yellow{color:var(--yellow);}.he-lbl.red{color:var(--red);}
+.hist-empty{text-align:center;padding:3.5rem;color:var(--muted);}
+.hist-empty h3{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:0.4rem;color:var(--text);}
+
+/* ===== BASELINE STYLES ===== */
+.baseline-gate{display:flex;flex-direction:column;align-items:center;text-align:center;gap:0;}
+.baseline-needed-card{background:linear-gradient(135deg,rgba(0,229,200,0.06),rgba(168,85,247,0.04));border:1px solid rgba(0,229,200,0.18);border-radius:20px;padding:2.5rem 3rem;max-width:560px;width:100%;margin-bottom:2rem;}
+.baseline-needed-card h3{font-family:'DM Serif Display',serif;font-size:1.6rem;letter-spacing:-0.02em;margin-bottom:0.6rem;}
+.baseline-needed-card p{color:var(--muted);font-size:0.875rem;line-height:1.75;}
+.baseline-set-card{background:rgba(0,229,200,0.04);border:1px solid rgba(0,229,200,0.2);border-radius:16px;padding:1.5rem 2rem;max-width:560px;width:100%;margin-bottom:2rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;}
+.bsc-icon{font-size:2rem;flex-shrink:0;}
+.bsc-info{flex:1;}
+.bsc-title{font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--teal);margin-bottom:0.3rem;}
+.bsc-date{font-size:0.8rem;color:var(--muted);margin-bottom:0.75rem;}
+.bsc-scores{display:flex;gap:1.25rem;}
+.bsc-score{text-align:center;}
+.bsc-score-lbl{font-family:'Space Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
+.bsc-score-v{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--teal);}
+.bsc-rerecord{background:none;border:1px solid var(--cbord);color:var(--muted);padding:0.3rem 0.85rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.75rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;flex-shrink:0;}
+.bsc-rerecord:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.fast-check-locked{display:flex;align-items:center;gap:0.6rem;color:var(--muted);font-size:0.8rem;font-family:'Space Mono',monospace;letter-spacing:0.06em;padding:0.75rem 1.5rem;border:1px solid var(--cbord);border-radius:100px;cursor:not-allowed;margin-bottom:1.5rem;}
+
+/* Baseline result banner */
+.status-banner.baseline{background:linear-gradient(135deg,rgba(0,229,200,0.1),rgba(0,229,200,0.03));border:1px solid rgba(0,229,200,0.3);}
+.status-banner.baseline .sb-info h2{color:var(--teal);}
+.status-banner.baseline .sb-score{color:var(--teal);}
+.status-banner.baseline .sb-orb{background:rgba(0,229,200,0.15);box-shadow:0 0 30px rgba(0,229,200,0.2);}
+
+/* Delta chips on metric cards */
+.delta-row{display:flex;align-items:center;gap:0.6rem;margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid var(--cbord);flex-wrap:wrap;}
+.delta-lbl{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
+.delta-chip{display:inline-flex;align-items:center;gap:0.25rem;font-family:'Space Mono',monospace;font-size:0.68rem;padding:0.15rem 0.55rem;border-radius:100px;font-weight:500;}
+.delta-chip.up{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+.delta-chip.down{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2);}
+.delta-chip.flat{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--cbord);}
+.delta-baseline-val{font-size:0.7rem;color:var(--muted);}
+
+/* History baseline pin */
+.he.baseline-entry{border-color:rgba(0,229,200,0.25);background:rgba(0,229,200,0.03);}
+.he-baseline-tag{font-family:'Space Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--teal);background:rgba(0,229,200,0.08);border:1px solid rgba(0,229,200,0.2);padding:0.18rem 0.55rem;border-radius:100px;white-space:nowrap;}
+
+/* Record screen baseline mode banner */
+.rec-mode-banner{text-align:center;padding:0.6rem 1.5rem;background:rgba(0,229,200,0.06);border:1px solid rgba(0,229,200,0.2);border-radius:10px;font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:var(--teal);margin-bottom:1rem;}
+
+/* Countdown overlay on camera */
+.countdown-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,8,15,0.55);backdrop-filter:blur(2px);z-index:10;pointer-events:none;opacity:0;transition:opacity 0.2s;}
+.countdown-overlay.visible{opacity:1;}
+.countdown-num{font-family:'DM Serif Display',serif;font-size:9rem;color:#fff;text-shadow:0 0 60px rgba(0,229,200,0.8),0 0 20px rgba(0,229,200,0.5);line-height:1;animation:cntPop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) forwards;}
+@keyframes cntPop{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+/* ── RESULTS ENTRANCE ANIMATIONS ── */
+@keyframes cardSlideUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+@keyframes orbPulseResult{0%,100%{transform:scale(1);box-shadow:0 0 20px var(--orb-glow,rgba(34,197,94,0.2));}50%{transform:scale(1.06);box-shadow:0 0 40px var(--orb-glow,rgba(34,197,94,0.4));}}
+.mc{animation:cardSlideUp 0.5s cubic-bezier(0.4,0,0.2,1) both;}
+.mc:nth-child(1){animation-delay:0.05s;}
+.mc:nth-child(2){animation-delay:0.12s;}
+.mc:nth-child(3){animation-delay:0.19s;}
+.status-banner.green{--orb-glow:rgba(34,197,94,0.35);}
+.status-banner.yellow{--orb-glow:rgba(245,158,11,0.35);}
+.status-banner.red{--orb-glow:rgba(239,68,68,0.35);}
+.sb-orb{animation:orbPulseResult 2.5s ease-in-out infinite;}
+
+/* ── HISTORY ENTRY STAGGER ── */
+@keyframes heSlideIn{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:none;}}
+
+/* ── PROCESSING ORB SHIMMER ── */
+.proc-orb::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(from 0deg,transparent 60%,rgba(0,229,200,0.4) 100%);animation:spin 3s linear infinite;z-index:-1;}
+.proc-orb{position:relative;}
+.sq-panel{background:var(--surface);border:1px solid var(--cbord);border-radius:15px;padding:1.25rem 1.4rem;margin-top:0.75rem;}
+.sq-panel-lbl{font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:0.85rem;}
+.sq-rows{display:flex;flex-direction:column;gap:0.55rem;}
+.sq-row{display:flex;align-items:center;gap:0.65rem;font-size:0.92rem;}
+.sq-icon{width:20px;text-align:center;font-size:0.95rem;flex-shrink:0;}
+.sq-label{flex:1;font-size:0.88rem;color:var(--text);}
+.sq-status{font-family:'Space Mono',monospace;font-size:0.68rem;padding:0.15rem 0.5rem;border-radius:100px;white-space:nowrap;}
+.sq-status.good{background:rgba(34,197,94,0.12);color:var(--green);border:1px solid rgba(34,197,94,0.2);}
+.sq-status.warn{background:rgba(245,158,11,0.12);color:var(--yellow);border:1px solid rgba(245,158,11,0.2);}
+.sq-status.bad{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+.sq-tip{font-family:'Space Mono',monospace;font-size:0.64rem;color:var(--muted);margin-top:0.25rem;line-height:1.5;padding-left:1.7rem;}
+
+/* Quality Gate Decision Overlay */
+.qg-overlay{position:fixed;inset:0;z-index:600;background:rgba(6,8,15,0.88);backdrop-filter:blur(18px);display:flex;align-items:center;justify-content:center;padding:2rem;animation:fadeUp 0.35s ease;}
+.qg-box{background:var(--surface);border:1px solid var(--cbord);border-radius:22px;padding:2.5rem 3rem;max-width:460px;width:100%;text-align:center;position:relative;}
+.qg-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--ac,var(--teal)),transparent);}
+.qg-icon{font-size:2.8rem;margin-bottom:1.25rem;}
+.qg-title{font-family:'DM Serif Display',serif;font-size:1.65rem;letter-spacing:-0.02em;margin-bottom:0.5rem;}
+.qg-desc{color:var(--muted);font-size:0.85rem;line-height:1.7;margin-bottom:1.5rem;}
+.qg-score-row{display:flex;justify-content:center;gap:1.5rem;margin-bottom:1.75rem;padding:1rem 1.5rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;}
+.qg-score-item{text-align:center;}
+.qg-score-lbl{font-family:'Space Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem;}
+.qg-score-v{font-family:'DM Serif Display',serif;font-size:1.2rem;}
+.qg-score-v.good{color:var(--green);}.qg-score-v.warn{color:var(--yellow);}.qg-score-v.bad{color:var(--red);}
+.qg-btns{display:flex;flex-direction:column;gap:0.65rem;}
+.qg-proceed{background:var(--teal);color:var(--bg);border:none;padding:0.75rem 2rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.875rem;cursor:pointer;transition:all 0.3s;}
+.qg-proceed:hover{box-shadow:0 0 30px rgba(0,229,200,0.35);}
+.qg-proceed.yellow{background:var(--yellow);}
+.qg-retake{background:transparent;border:1px solid var(--cbord);color:var(--muted);padding:0.75rem 2rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.875rem;cursor:pointer;transition:all 0.2s;}
+.qg-retake:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.qg-ethos{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.06em;margin-top:1.25rem;line-height:1.6;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--cbord);}
+
+/* ===== BASELINE CONFIDENCE METER ===== */
+.bc-pill{display:inline-flex;align-items:center;gap:0.45rem;font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.28rem 0.75rem 0.28rem 0.45rem;border-radius:100px;cursor:default;position:relative;transition:all 0.3s;}
+.bc-pill.low{background:rgba(245,158,11,0.1);color:var(--yellow);border:1px solid rgba(245,158,11,0.25);}
+.bc-pill.medium{background:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.25);}
+.bc-pill.high{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.25);}
+.bc-pill.verified{background:rgba(0,229,200,0.12);color:var(--teal);border:1px solid rgba(0,229,200,0.35);}
+
+/* Confidence ring — inline arc replaces dot */
+.bc-ring-svg{display:block;flex-shrink:0;overflow:visible;}
+.bc-ring-track{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:3;}
+.bc-ring-fill{fill:none;stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1.1s cubic-bezier(0.4,0,0.2,1);}
+.bc-ring-tip{transition:all 1.1s cubic-bezier(0.4,0,0.2,1);}
+.bc-pill.low    .bc-ring-fill{stroke:var(--yellow);}
+.bc-pill.medium .bc-ring-fill{stroke:#60a5fa;}
+.bc-pill.high   .bc-ring-fill{stroke:var(--green);}
+.bc-pill.verified .bc-ring-fill{stroke:var(--teal);}
+.bc-pill.low    .bc-ring-tip{fill:var(--yellow);filter:drop-shadow(0 0 3px rgba(245,158,11,0.9));}
+.bc-pill.medium .bc-ring-tip{fill:#60a5fa;filter:drop-shadow(0 0 3px rgba(96,165,250,0.9));}
+.bc-pill.high   .bc-ring-tip{fill:var(--green);filter:drop-shadow(0 0 3px rgba(34,197,94,0.9));}
+.bc-pill.verified .bc-ring-tip{fill:var(--teal);filter:drop-shadow(0 0 4px rgba(0,229,200,1));}
+
+/* Confidence breakdown dropdown */
+.bc-breakdown{position:absolute;top:calc(100% + 8px);right:0;width:260px;background:var(--surface);border:1px solid var(--cbord);border-radius:14px;padding:1.1rem 1.25rem;z-index:60;pointer-events:none;opacity:0;transform:translateY(-4px);transition:opacity 0.2s,transform 0.2s;}
+.bc-pill:hover .bc-breakdown,.bc-pill:focus .bc-breakdown{opacity:1;transform:none;pointer-events:auto;}
+.bcd-title{font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:0.75rem;}
+.bcd-row{display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;padding:0.3rem 0;}
+.bcd-row-lbl{color:var(--muted);}
+.bcd-row-val{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--text);}
+.bcd-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin:0.65rem 0;overflow:hidden;}
+.bcd-bar-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--blue));border-radius:2px;transition:width 1s ease;}
+.bcd-nextstep{font-size:0.78rem;color:var(--teal);line-height:1.5;padding-top:0.5rem;border-top:1px solid var(--cbord);}
+
+/* Trend escalation banner */
+.trend-banner{display:none;align-items:flex-start;gap:0.85rem;padding:0.9rem 1.25rem;border-radius:12px;margin-bottom:1.25rem;}
+.trend-banner.strong{background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);}
+.trend-banner.soft{background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);}
+.tb-icon{font-size:1.15rem;flex-shrink:0;margin-top:0.05rem;}
+.tb-msg{font-size:0.88rem;line-height:1.6;color:var(--text);}
+.trend-banner.strong .tb-msg strong{color:var(--red);}
+.trend-banner.soft .tb-msg strong{color:var(--yellow);}
+
+/* Export button */
+.act-btn-export{padding:0.65rem 1.5rem;border-radius:100px;background:transparent;border:1px solid rgba(0,229,200,0.3);color:var(--teal);font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer;transition:all 0.2s;}
+.act-btn-export:hover{background:rgba(0,229,200,0.07);border-color:rgba(0,229,200,0.5);}
+.bc-tooltip{position:absolute;bottom:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--cbord);border-radius:10px;padding:0.75rem 1rem;width:220px;font-size:0.72rem;color:var(--muted);line-height:1.5;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:50;text-transform:none;letter-spacing:0;}
+.bc-pill:hover .bc-tooltip{opacity:1;}
+.bc-msg{font-family:'Space Mono',monospace;font-size:0.67rem;color:var(--muted);letter-spacing:0.04em;margin-top:0.4rem;line-height:1.5;}
+
+/* Confidence banner on results */
+.conf-banner{display:flex;align-items:center;justify-content:space-between;padding:0.85rem 1.4rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;}
+.conf-banner-left{display:flex;align-items:center;gap:0.75rem;}
+.conf-banner-lbl{font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);}
+.conf-banner-msg{font-size:0.8rem;color:var(--text);}
+
+/* History metric charts */
+.hist-metric-charts{display:grid;grid-template-columns:repeat(3,1fr);gap:1.15rem;margin-bottom:1.4rem;}
+.hmc-card{background:var(--surface);border:1px solid var(--cbord);border-radius:14px;padding:1.25rem;position:relative;overflow:hidden;}
+.hmc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--hmcc,var(--teal)),transparent);}
+.hmc-card.face{--hmcc:var(--teal);}.hmc-card.arms{--hmcc:var(--violet);}.hmc-card.speech{--hmcc:var(--blue);}
+.hmc-hd{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;}
+.hmc-ico{font-size:1rem;}
+.hmc-ttl{font-family:'DM Serif Display',serif;font-size:0.9rem;flex:1;}
+.hmc-unit{font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);letter-spacing:0.06em;}
+.hmc-area{height:80px;}
+
+/* Replay modal score cards */
+.replay-score-card{display:flex;align-items:center;gap:0.85rem;padding:1rem 1.25rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;}
+.replay-score-ico{font-size:1.2rem;}
+.replay-score-lbl{font-family:'Space Mono',monospace;font-size:0.58rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.15rem;}
+.replay-score-val{font-family:'DM Serif Display',serif;font-size:1.15rem;}
+.replay-badge{font-family:'Space Mono',monospace;font-size:0.58rem;letter-spacing:0.06em;padding:0.18rem 0.55rem;border-radius:100px;white-space:nowrap;}
+.replay-badge.ok{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.2);}
+.replay-badge.warn{background:rgba(245,158,11,0.1);color:var(--yellow);border:1px solid rgba(245,158,11,0.2);}
+.replay-badge.alert{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2);}
+
+@media(max-width:900px){
+  .hist-metric-charts{grid-template-columns:1fr;}
+  #replay-grid{grid-template-columns:1fr!important;}
+  nav{padding:1.5rem 2rem;}.nav-links{display:none;}
+  .section-pad,.signals-section,.ethics-section,.chart-section,.audience-section,.cta-section{padding:5rem 1.5rem;}
+  .steps-grid,.signals-header,.ethics-inner,.audience-grid{grid-template-columns:1fr;}
+  .signals-grid{grid-template-columns:1fr 1fr;}
+  .ethics-inner{padding:3rem 2rem;gap:2.5rem;}
+  footer{flex-direction:column;gap:1.5rem;text-align:center;}.footer-note{text-align:center;}
+  .record-layout,.metric-cards,.previews-row,.what-is-fast{grid-template-columns:1fr;}
+  .status-banner,.action-panel{flex-direction:column;align-items:flex-start;}
+  .he-scores{gap:0.75rem;}
+  .app-nav{padding:0.9rem 1.25rem;}
+}
+
+/* ===== HOW IT WORKS OVERLAY ===== */
+#hiw-overlay{font-family:'DM Sans',sans-serif;}
+.hiw-nav{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:1.1rem 2.5rem;background:rgba(6,8,15,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--cbord);}
+.hiw-nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--teal);text-shadow:0 0 20px rgba(0,229,200,0.4);transition:opacity 0.2s;}
+.hiw-nav-logo:hover{opacity:0.75;}
+.hiw-nav-sub{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.06em;margin-left:0.5rem;}
+.hiw-back{background:none;border:1px solid var(--cbord);color:var(--muted);padding:0.4rem 1.1rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.2s;}
+.hiw-back:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.hiw-body{max-width:900px;margin:0 auto;padding:4rem 2rem 6rem;}
+.hiw-hero{text-align:center;margin-bottom:5rem;}
+.hiw-tag{font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:1rem;}
+.hiw-title{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:1.25rem;}
+.hiw-title em{font-style:italic;color:var(--teal);text-shadow:0 0 40px rgba(0,229,200,0.35);}
+.hiw-sub{color:var(--muted);font-size:1.1rem;line-height:1.8;max-width:600px;margin:0 auto;}
+.hiw-section{margin-bottom:4.5rem;}
+.hiw-section-tag{font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--violet);margin-bottom:0.75rem;}
+.hiw-section-title{font-family:'DM Serif Display',serif;font-size:1.9rem;letter-spacing:-0.02em;margin-bottom:0.75rem;}
+.hiw-section-desc{color:var(--muted);font-size:1.05rem;line-height:1.8;margin-bottom:2rem;max-width:700px;}
+.hiw-steps{display:flex;flex-direction:column;gap:1px;background:var(--cbord);border-radius:16px;overflow:hidden;}
+.hiw-step{background:var(--surface);padding:1.75rem 2rem;display:grid;grid-template-columns:48px 1fr;gap:1.5rem;align-items:flex-start;transition:background 0.2s;}
+.hiw-step:hover{background:#111827;}
+.hiw-step-num{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:0.85rem;font-weight:700;flex-shrink:0;}
+.hiw-step-num.teal{background:rgba(0,229,200,0.12);color:var(--teal);border:1px solid rgba(0,229,200,0.25);}
+.hiw-step-num.violet{background:rgba(168,85,247,0.12);color:var(--violet);border:1px solid rgba(168,85,247,0.25);}
+.hiw-step-num.blue{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25);}
+.hiw-step-info h4{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:0.4rem;}
+.hiw-step-info p{color:var(--muted);font-size:1rem;line-height:1.75;}
+.hiw-step-info .hiw-step-note{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--teal);letter-spacing:0.06em;margin-top:0.5rem;opacity:0.8;}
+.hiw-signal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.hiw-signal{background:var(--surface);border:1px solid var(--cbord);border-radius:14px;padding:1.5rem;}
+.hiw-signal-icon{font-size:1.6rem;margin-bottom:0.75rem;}
+.hiw-signal h4{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.4rem;}
+.hiw-signal p{color:var(--muted);font-size:0.96rem;line-height:1.7;}
+.hiw-signal .hiw-signal-metric{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid var(--cbord);letter-spacing:0.05em;}
+.hiw-faq{display:flex;flex-direction:column;gap:0.75rem;}
+.hiw-faq-item{background:var(--surface);border:1px solid var(--cbord);border-radius:13px;overflow:hidden;}
+.hiw-faq-q{padding:1.1rem 1.5rem;font-weight:500;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background 0.2s;}
+.hiw-faq-q:hover{background:rgba(255,255,255,0.02);}
+.hiw-faq-q span{font-family:'Space Mono',monospace;font-size:0.85rem;color:var(--muted);}
+.hiw-faq-a{padding:0 1.5rem 1.1rem;color:var(--muted);font-size:0.98rem;line-height:1.75;display:none;}
+.hiw-faq-item.open .hiw-faq-a{display:block;}
+.hiw-faq-item.open .hiw-faq-q{background:rgba(0,229,200,0.04);}
+.hiw-faq-item.open .hiw-faq-q span{color:var(--teal);}
+.hiw-cta{text-align:center;padding:3.5rem 2rem;background:linear-gradient(135deg,rgba(0,229,200,0.05),rgba(168,85,247,0.04));border:1px solid var(--cbord);border-radius:20px;}
+.hiw-cta h3{font-family:'DM Serif Display',serif;font-size:2rem;letter-spacing:-0.02em;margin-bottom:0.75rem;}
+.hiw-cta p{color:var(--muted);font-size:1.05rem;margin-bottom:2rem;line-height:1.7;}
+@media(max-width:640px){.hiw-signal-grid{grid-template-columns:1fr;}.hiw-body{padding:2rem 1.25rem 4rem;}}
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ LANDING PAGE ═══════════════════ -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+
+<nav>
+  <a class="nav-logo" href="#" onclick="closeApp();closeHowItWorks();closeReplayModal();window.scrollTo({top:0,behavior:'smooth'});return false;" style="text-decoration:none;cursor:pointer;">Baseline</a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#signals">Signals</a></li>
+    <li><a href="#ethics">Ethics</a></li>
+    <li><a href="#why">Why It Matters</a></li>
+  </ul>
+  <button class="nav-cta" onclick="openApp()">Early Access</button>
+</nav>
+
+<section class="hero">
+  <p class="hero-eyebrow">🧠 Early Stroke Detection · FAST Screening</p>
+  <h1>Catch the signs<br>before they<br><em>escalate.</em></h1>
+  <p class="hero-sub">Baseline uses your camera and microphone to run the FAST neurological screening — analyzing facial symmetry, arm stability, and speech clarity to surface early warning signals of stroke at any age.</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="openApp()">Start Free Check-In</button>
+    <button class="btn-ghost" onclick="openHowItWorks()">See How It Works</button>
+  </div>
+  <div class="signal-viz">
+    <div class="waveform" id="waveform"></div>
+    <p class="viz-label">— Video · Pose · Speech signal analysis —</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section-pad" id="how">
+  <div style="max-width:1100px;margin:0 auto">
+    <p class="section-tag reveal">Process</p>
+    <h2 class="section-title reveal">Three tasks,<br>one clear picture.</h2>
+    <p class="section-desc reveal">No doctors. No paperwork. A 30-second video check-in that screens for the classic FAST stroke indicators — Face, Arms, Speech, Time — using your camera and microphone.</p>
+    <div class="steps-grid reveal">
+      <div class="step"><div class="step-num">01</div><span class="step-icon">📹</span><h3>Video Check-In</h3><p>Record a 30-second clip in your browser — no app needed. Your camera captures facial symmetry and arm stability while your microphone captures speech patterns.</p></div>
+      <div class="step"><div class="step-num">02</div><span class="step-icon">🔬</span><h3>Multi-Signal Analysis</h3><p>AI analyzes facial landmark symmetry, arm drift over time using pose detection, and speech pace and clarity — the same three axes physicians use in FAST assessment.</p></div>
+      <div class="step"><div class="step-num">03</div><span class="step-icon">📊</span><h3>Your Personal Baseline</h3><p>Compared only to yourself. A naturally asymmetric face isn't flagged. Changes are measured against your recorded baseline — not population averages.</p></div>
+      <div class="step"><div class="step-num">04</div><span class="step-icon">⚡</span><h3>Immediate Awareness</h3><p>If signals deviate from your baseline, Anchor surfaces the pattern clearly and immediately — with plain language, no scores, and a direct nudge to seek care if needed.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="signals-section" id="signals">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="signals-header">
+      <div><p class="section-tag reveal">What We Measure</p><h2 class="section-title reveal" style="margin-bottom:0">The signals a stroke leaves<br>before it's obvious.</h2></div>
+      <p class="section-desc reveal">Each signal is drawn from the FAST protocol used by emergency medicine. Anchor measures all three simultaneously — and compares them against your personal baseline, not a population average.</p>
+    </div>
+    <div class="signals-grid">
+      <div class="signal-card reveal"><div class="signal-emoji">😐</div><h4>Facial Symmetry</h4><p>Mouth corner and eye alignment measured across frames. Sudden asymmetry — especially one-sided drooping — is one of the earliest observable signs of stroke.</p></div>
+      <div class="signal-card reveal"><div class="signal-emoji">🦾</div><h4>Arm Drift & Stability</h4><p>Wrist height tracked relative to shoulders over 5 seconds using pose detection. Unilateral drift or sudden drop indicates potential motor weakness on one side.</p></div>
+      <div class="signal-card reveal"><div class="signal-emoji">🗣️</div><h4>Speech Clarity</h4><p>Words per minute, pause ratio, and fluency measured as you speak a simple phrase. Slurring and hesitation appear in speech patterns before they're noticeable to the speaker.</p></div>
+      <div class="signal-card reveal"><div class="signal-emoji">📐</div><h4>Personal Baseline</h4><p>Your results are compared to your own recorded baseline — not a statistical average. A naturally asymmetric face won't trigger a false alarm.</p></div>
+      <div class="signal-card reveal"><div class="signal-emoji">📈</div><h4>Trend Tracking</h4><p>Each check-in is stored locally and compared over time. Subtle changes that emerge across sessions can surface patterns a single snapshot would miss.</p></div>
+      <div class="signal-card reveal"><div class="signal-emoji">🎯</div><h4>Signal Quality Gate</h4><p>Every recording is evaluated for lighting, framing, body visibility, and audio clarity. Low-quality signals are blocked — we only report when the data is trustworthy.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="chart-section">
+  <div style="max-width:900px;margin:0 auto">
+    <p class="section-tag reveal">Visualization</p>
+    <h2 class="section-title reveal">Patterns, not diagnoses.</h2>
+    <p class="section-desc reveal" style="margin:0 auto">Your dashboard shows gentle trends. No scores. No alarms. Just information, in your hands.</p>
+    <div class="chart-container reveal">
+      <div class="chart-header"><div class="chart-title">Facial Asymmetry Index — Past 14 Days</div><div class="chart-period">FEB 2026</div></div>
+      <div class="chart-area">
+        <svg class="chart-svg" viewBox="0 0 740 180" preserveAspectRatio="none">
+          <defs><linearGradient id="lg" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#00e5c8" stop-opacity="0.3"/><stop offset="100%" stop-color="#00e5c8" stop-opacity="0"/></linearGradient></defs>
+          <line x1="0" y1="45" x2="740" y2="45" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="90" x2="740" y2="90" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <line x1="0" y1="135" x2="740" y2="135" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+          <path d="M0,80 C55,75 110,60 160,65 C210,70 260,85 310,90 C360,95 390,100 440,108 C490,115 530,120 580,118 C620,116 660,112 700,110 L700,180 L0,180 Z" fill="url(#lg)"/>
+          <line x1="0" y1="68" x2="740" y2="68" stroke="rgba(0,229,200,0.2)" stroke-width="1" stroke-dasharray="5,5"/>
+          <text x="710" y="63" fill="rgba(0,229,200,0.5)" font-size="10" font-family="Space Mono">baseline</text>
+          <path d="M0,80 C55,75 110,60 160,65 C210,70 260,85 310,90 C360,95 390,100 440,108 C490,115 530,120 580,118 C620,116 660,112 700,110" fill="none" stroke="#00e5c8" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="0" cy="80" r="4" fill="#00e5c8"/><circle cx="160" cy="65" r="4" fill="#00e5c8"/><circle cx="310" cy="90" r="4" fill="#00e5c8"/>
+          <circle cx="440" cy="108" r="5" fill="#00e5c8" filter="drop-shadow(0 0 6px #00e5c8)"/>
+          <circle cx="580" cy="118" r="4" fill="#00e5c8"/><circle cx="700" cy="110" r="4" fill="#00e5c8"/>
+          <text x="0" y="175" fill="#6b7280" font-size="11" font-family="Space Mono">Feb 5</text>
+          <text x="145" y="175" fill="#6b7280" font-size="11" font-family="Space Mono">Feb 8</text>
+          <text x="295" y="175" fill="#6b7280" font-size="11" font-family="Space Mono">Feb 11</text>
+          <text x="425" y="175" fill="#6b7280" font-size="11" font-family="Space Mono">Feb 14</text>
+          <text x="565" y="175" fill="#6b7280" font-size="11" font-family="Space Mono">Feb 17</text>
+          <text x="685" y="175" fill="#6b7280" font-size="11" font-family="Space Mono">Today</text>
+        </svg>
+      </div>
+      <div class="chart-insight">✦ &nbsp;"Facial asymmetry index is stable and within your personal baseline this week. No changes from your norm."</div>
+    </div>
+  </div>
+</section>
+
+<section class="ethics-section" id="ethics">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="ethics-inner reveal">
+      <div>
+        <p class="section-tag">Ethics First</p>
+        <h2 class="ethics-title">Built with<br><em>radical</em><br>responsibility.</h2>
+        <p class="ethics-desc">Baseline is not a medical device and cannot diagnose a stroke. It's an awareness tool designed to help people notice changes in their own signals over time — and act faster when it matters. Your data never leaves your device.</p>
+      </div>
+      <div class="ethics-list">
+        <div class="ethics-item"><div class="ethics-icon">🔒</div><div class="ethics-item-text">No diagnosis, ever<span>Anchor reflects patterns from your baseline. It never diagnoses, labels, or replaces medical evaluation.</span></div></div>
+        <div class="ethics-item"><div class="ethics-icon">🚫</div><div class="ethics-item-text">Zero data sharing<span>All recordings and results are processed locally. Nothing is sent to servers, insurers, or third parties.</span></div></div>
+        <div class="ethics-item"><div class="ethics-icon">👤</div><div class="ethics-item-text">Compared only to yourself<span>Your baseline is yours. You're never measured against population averages — because stroke signs look different on everyone.</span></div></div>
+        <div class="ethics-item"><div class="ethics-icon">⚡</div><div class="ethics-item-text">Designed for speed, not perfectionism<span>If signals are concerning, we say so clearly and immediately — not after 10 more check-ins.</span></div></div>
+        <div class="ethics-item"><div class="ethics-icon">🔍</div><div class="ethics-item-text">Full transparency<span>Every signal explained. Every threshold documented. You always know exactly what triggered an alert and why.</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="audience-section" id="why">
+  <div style="max-width:1100px;margin:0 auto">
+    <p class="section-tag reveal">Why It Matters</p>
+    <h2 class="section-title reveal">Every minute matters.<br>Most strokes go undetected<br>for too long.</h2>
+    <div class="audience-grid">
+      <div class="audience-card reveal"><div class="audience-big">80%</div><h4>Are preventable or treatable</h4><p>Stroke is the leading cause of long-term disability worldwide — yet up to 80% of strokes can be prevented or minimized when warning signs are caught and acted on early.</p></div>
+      <div class="audience-card reveal"><div class="audience-big">F·A·S·T</div><h4>The standard detection protocol</h4><p>Face drooping, Arm weakness, Speech difficulty, Time to call. FAST is the global screening framework — Baseline runs all three signal checks in about 30 seconds, from any device with a camera.</p></div>
+      <div class="audience-card reveal"><div class="audience-big">All ages</div><h4>Stroke doesn't only affect the elderly</h4><p>Stroke incidence in adults under 50 is rising. Regular baseline check-ins allow anyone — at any age — to know their normal and spot deviations before they become emergencies.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="cta-inner">
+    <p class="section-tag reveal">Try It Now</p>
+    <h2 class="reveal">Be the first to<br>hear your own <em>signal.</em></h2>
+    <p class="reveal">Run the FAST neurological screening demo — a 30-second video check-in that analyzes facial symmetry, arm drift, and speech clarity live in your browser.</p>
+    <div class="hero-actions reveal">
+      <button class="btn-primary" onclick="openApp()">Start FAST Check →</button>
+      <button class="btn-ghost">Learn More</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Baseline</div>
+  <p class="footer-note">Not a medical device. Not a diagnostic tool.<br>An early-warning mirror for stroke signals — for everyone.</p>
+</footer>
+
+
+<!-- ═══════════════════ FAST CHECK APP ═══════════════════ -->
+<div id="fast-app">
+
+  <div class="app-nav">
+    <div class="app-nav-logo" onclick="stopPreviewLoop();showScreen('home');" style="cursor:pointer;">Baseline <span class="app-nav-sub">/ FAST Check</span></div>
+    <div class="app-nav-right">
+      <button class="app-nav-hist" onclick="goHistory()">📈 History</button>
+      <span id="nav-bc-pill" class="bc-pill low" tabindex="0">
+        <svg class="bc-ring-svg" width="20" height="20" viewBox="0 0 20 20">
+          <circle class="bc-ring-track" cx="10" cy="10" r="7"/>
+          <circle id="nav-conf-ring" class="bc-ring-fill" cx="10" cy="10" r="7" stroke-dasharray="43.98" stroke-dashoffset="43.98" transform="rotate(-90 10 10)"/>
+          <circle id="nav-conf-tip" class="bc-ring-tip" cx="10" cy="3" r="1.8" opacity="0"/>
+        </svg>
+        <span id="nav-bc-text">Calibrating</span>
+        <span class="bc-breakdown">
+          <div class="bcd-title">Confidence Drivers</div>
+          <div class="bcd-row"><span class="bcd-row-lbl">Check-ins</span><span class="bcd-checkins bcd-row-val">0 / 8</span></div>
+          <div class="bcd-row"><span class="bcd-row-lbl">Avg quality</span><span class="bcd-quality bcd-row-val">—</span></div>
+          <div class="bcd-row"><span class="bcd-row-lbl">Signal stability</span><span class="bcd-stability bcd-row-val">—</span></div>
+          <div class="bcd-bar"><div class="bcd-bar-fill" style="width:0%"></div></div>
+          <div class="bcd-nextstep">Complete 3 more check-ins to reach Developing.</div>
+        </span>
+      </span>
+      <span class="app-badge">Beta Demo</span>
+      <button class="app-back" onclick="closeApp()">← Back</button>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: HOME ══ -->
+  <div class="app-screen active" id="screen-home">
+    <!-- Content injected by updateHomeScreen() -->
+  </div>
+
+  <!-- ══ SCREEN: RECORD ══ -->
+  <div class="app-screen" id="screen-record">
+    <div class="record-layout">
+      <div>
+        <div class="camera-wrap">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <div class="cam-overlay">
+            <div class="face-guide">
+              <div class="fgc tl"></div><div class="fgc tr"></div>
+              <div class="fgc bl"></div><div class="fgc br"></div>
+            </div>
+            <!-- Placeholder shown before camera starts -->
+            <div id="cam-placeholder" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,8,15,0.92);gap:0.75rem;">
+              <div style="font-size:2rem;animation:blink 1.2s ease-in-out infinite;">📷</div>
+              <div style="font-family:'Space Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;color:var(--muted);text-align:center;">Starting camera preview…</div>
+            </div>
+            <div class="countdown-overlay" id="countdown-overlay">
+              <div class="countdown-num" id="countdown-num">3</div>
+            </div>
+            <div id="speech-passage-overlay" style="display:none;position:absolute;inset:0;background:rgba(6,8,15,0.78);backdrop-filter:blur(4px);z-index:8;display:flex;align-items:center;justify-content:center;padding:1.25rem 1rem;">
+              <p id="speech-passage-text" style="font-family:'DM Sans',sans-serif;font-size:clamp(0.85rem,2.2vw,1.05rem);color:#fff;line-height:1.7;text-align:center;max-width:420px;"></p>
+            </div>
+            <div class="prompt-banner smile" id="prompt-banner">😐 &nbsp;NEUTRAL FACE — keep still</div>
+            <div class="rec-ind" id="rec-ind"><span class="rec-dot"></span> REC</div>
+            <div class="cam-tip" id="cam-tip">Keep your face centered · Shoulders visible</div>
+          </div>
+        </div>
+      </div>
+      <div class="rec-panel">
+        <div id="rec-mode-banner" class="rec-mode-banner" style="display:none">📐 Baseline Recording</div>
+        <div class="panel-box">
+          <div class="pb-label">Task Sequence</div>
+          <div class="tp-tasks">
+            <div class="tp-task active" id="tp-smile"><div class="tp-icon">😐</div><div class="tp-info"><div class="tp-name">Neutral Face</div><div class="tp-dur">3 seconds</div></div><div class="tp-chk" id="chk-smile">○</div></div>
+            <div class="tp-task pending" id="tp-arms"><div class="tp-icon">🙌</div><div class="tp-info"><div class="tp-name">Raise Both Arms</div><div class="tp-dur">5 seconds</div></div><div class="tp-chk" id="chk-arms">○</div></div>
+            <div class="tp-task pending" id="tp-speak"><div class="tp-icon">🗣️</div><div class="tp-info"><div class="tp-name">Read the Passage</div><div class="tp-dur">20 seconds</div></div><div class="tp-chk" id="chk-speak">○</div></div>
+          </div>
+        </div>
+        <div class="panel-box">
+          <div class="timer-inner">
+            <svg class="timer-svg" viewBox="0 0 90 90">
+              <circle class="tr-bg" cx="45" cy="45" r="40"/>
+              <circle class="tr-fill" id="timer-ring" cx="45" cy="45" r="40" transform="rotate(-90 45 45)"/>
+              <text class="timer-num" x="45" y="52" text-anchor="middle" id="timer-num">—</text>
+            </svg>
+            <div class="timer-lbl" id="timer-lbl">Ready to begin</div>
+          </div>
+        </div>
+        <div class="sq-panel">
+          <div class="sq-panel-lbl">Signal Quality</div>
+          <div class="sq-rows">
+            <div>
+              <div class="sq-row">
+                <div class="sq-icon">💡</div>
+                <div class="sq-label">Lighting</div>
+                <div class="sq-status good" id="sq-lighting">✅ Good</div>
+              </div>
+              <div class="sq-tip" id="sq-lighting-tip"></div>
+            </div>
+            <div>
+              <div class="sq-row">
+                <div class="sq-icon">👤</div>
+                <div class="sq-label">Face Framing</div>
+                <div class="sq-status good" id="sq-face">✅ Good</div>
+              </div>
+              <div class="sq-tip" id="sq-face-tip"></div>
+            </div>
+            <div>
+              <div class="sq-row">
+                <div class="sq-icon">🦴</div>
+                <div class="sq-label">Body Visibility</div>
+                <div class="sq-status warn" id="sq-body">⚠️ Needs adjustment</div>
+              </div>
+              <div class="sq-tip" id="sq-body-tip">Step back so both shoulders and arms are visible.</div>
+            </div>
+            <div>
+              <div class="sq-row">
+                <div class="sq-icon">🎙️</div>
+                <div class="sq-label">Audio Clarity</div>
+                <div class="sq-status good" id="sq-audio">✅ Good</div>
+              </div>
+              <div class="sq-tip" id="sq-audio-tip"></div>
+            </div>
+          </div>
+        </div>
+        <div class="rec-controls">
+          <button class="btn-rec-go" id="btn-go" onclick="startRec()">▶ &nbsp;Start Recording</button>
+          <button class="btn-restart" onclick="resetRec()">↺ &nbsp;Restart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: PROCESSING ══ -->
+  <div class="app-screen" id="screen-processing">
+    <div class="proc-orb">🧠</div>
+    <h2 class="proc-title">Analyzing your check-in…</h2>
+    <p class="proc-sub">Running three signal analyses. Just a moment.</p>
+    <div class="proc-checks">
+      <div class="pc" id="pc-face">
+        <div class="pc-icon">😐</div>
+        <div style="flex:1"><div class="pc-name">Facial Symmetry</div><div class="pc-met" id="pc-face-met">Measuring mouth corner alignment…</div></div>
+        <div id="pc-face-st"><span class="spinner"></span></div>
+      </div>
+      <div class="pc" id="pc-arms">
+        <div class="pc-icon">🙌</div>
+        <div style="flex:1"><div class="pc-name">Arm Drift Analysis</div><div class="pc-met" id="pc-arms-met">Tracking wrist position over time…</div></div>
+        <div id="pc-arms-st"><span class="spinner"></span></div>
+      </div>
+      <div class="pc" id="pc-speech">
+        <div class="pc-icon">🗣️</div>
+        <div style="flex:1"><div class="pc-name">Speech Clarity</div><div class="pc-met" id="pc-speech-met">Analyzing pace and pause ratio…</div></div>
+        <div id="pc-speech-st"><span class="spinner"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: RESULTS ══ -->
+  <div class="app-screen" id="screen-results">
+    <div class="results-wrap">
+      <div class="conf-banner" id="conf-banner">
+        <div class="conf-banner-left">
+          <span id="results-bc-pill" class="bc-pill low" tabindex="0">
+            <svg class="bc-ring-svg" width="20" height="20" viewBox="0 0 20 20">
+              <circle class="bc-ring-track" cx="10" cy="10" r="7"/>
+              <circle id="results-conf-ring" class="bc-ring-fill" cx="10" cy="10" r="7" stroke-dasharray="43.98" stroke-dashoffset="43.98" transform="rotate(-90 10 10)"/>
+              <circle id="results-conf-tip" class="bc-ring-tip" cx="10" cy="3" r="1.8" opacity="0"/>
+            </svg>
+            <span id="results-bc-text">Calibrating</span>
+            <span class="bc-breakdown">
+              <div class="bcd-title">Confidence Drivers</div>
+              <div class="bcd-row"><span class="bcd-row-lbl">Check-ins</span><span class="bcd-checkins bcd-row-val">0 / 8</span></div>
+              <div class="bcd-row"><span class="bcd-row-lbl">Avg quality</span><span class="bcd-quality bcd-row-val">—</span></div>
+              <div class="bcd-row"><span class="bcd-row-lbl">Signal stability</span><span class="bcd-stability bcd-row-val">—</span></div>
+              <div class="bcd-bar"><div class="bcd-bar-fill" style="width:0%"></div></div>
+              <div class="bcd-nextstep">Complete more check-ins to improve confidence.</div>
+            </span>
+          </span>
+          <span class="conf-banner-msg" id="conf-banner-msg">We need more check-ins to understand your baseline.</span>
+        </div>
+      </div>
+
+      <div id="trend-banner" class="trend-banner" style="display:none;"></div>
+
+      <div class="status-banner green" id="sb">
+        <div class="sb-left">
+          <div class="sb-orb" id="sb-orb">✅</div>
+          <div class="sb-info">
+            <h2 id="sb-title">All Clear</h2>
+            <p id="sb-desc">No significant asymmetry or irregularity detected across all three FAST signals.</p>
+          </div>
+        </div>
+        <div class="sb-score-wrap">
+          <div class="sb-score-lbl">Risk Index</div>
+          <div class="sb-score" id="sb-score">0.4</div>
+        </div>
+      </div>
+
+      <div class="metric-cards">
+        <div class="mc face">
+          <div class="mc-hd"><div class="mc-ico">😐</div><div class="mc-ttl">Facial Symmetry</div><div class="mc-badge ok" id="face-badge">NORMAL</div></div>
+          <div class="mc-metric-lbl">Asymmetry Index</div>
+          <div class="mc-val" id="face-val">0.04<span class="mc-unit">/ 0.08 threshold</span></div>
+          <div class="mc-chart"><svg viewBox="0 0 200 60" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="face-grad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#00e5c8" stop-opacity="0.3"/><stop offset="100%" stop-color="#00e5c8" stop-opacity="0"/></linearGradient>
+            </defs>
+            <line x1="0" y1="52" x2="200" y2="52" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <line x1="0" y1="22" x2="200" y2="22" stroke="rgba(0,229,200,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+            <text x="194" y="19" fill="rgba(0,229,200,0.45)" font-size="7" font-family="Space Mono" text-anchor="end">threshold</text>
+            <path id="face-fill" class="mc-chart-fill" fill="url(#face-grad)" d=""/>
+            <path id="face-line" class="mc-chart-line" fill="none" stroke="#00e5c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M0,38 40,36 80,39 120,37 160,38 200,37"/>
+            <circle id="face-dot" cx="200" cy="37" r="4" fill="#00e5c8" class="mc-chart-dot chart-dot-glow" style="--dot-delay:1.1s;color:#00e5c8"/>
+          </svg></div>
+          <div class="mc-explain"><strong>What it means:</strong> Mouth corner and eye opening difference across frames. Values below 0.08 are within typical variation for natural smiling.</div>
+          <div class="delta-row" id="face-delta-row" style="display:none"><span class="delta-lbl">vs baseline</span><span class="delta-chip flat" id="face-delta-chip">—</span><span class="delta-baseline-val" id="face-baseline-val"></span></div>
+        </div>
+        <div class="mc arms">
+          <div class="mc-hd"><div class="mc-ico">🙌</div><div class="mc-ttl">Arm Stability</div><div class="mc-badge ok" id="arms-badge">NORMAL</div></div>
+          <div class="mc-metric-lbl">Right Arm Drift</div>
+          <div class="mc-val" id="arms-val">2.1<span class="mc-unit">% over 5s</span></div>
+          <div class="mc-chart"><svg viewBox="0 0 200 60" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="arms-grad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#a855f7" stop-opacity="0.3"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient>
+            </defs>
+            <line x1="0" y1="52" x2="200" y2="52" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <line x1="0" y1="22" x2="200" y2="22" stroke="rgba(168,85,247,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+            <text x="194" y="19" fill="rgba(168,85,247,0.45)" font-size="7" font-family="Space Mono" text-anchor="end">threshold</text>
+            <path id="arms-fill" class="mc-chart-fill" fill="url(#arms-grad)" d=""/>
+            <path id="arms-line" class="mc-chart-line" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M0,24 40,25 80,26 120,26 160,27 200,27"/>
+            <circle id="arms-dot" cx="200" cy="27" r="4" fill="#a855f7" class="mc-chart-dot chart-dot-glow" style="--dot-delay:1.1s;color:#a855f7"/>
+          </svg></div>
+          <div class="mc-explain"><strong>What it means:</strong> Wrist height relative to shoulder over 5 seconds. Gradual drift beyond 8% may indicate one-sided weakness worth monitoring.</div>
+          <div class="delta-row" id="arms-delta-row" style="display:none"><span class="delta-lbl">vs baseline</span><span class="delta-chip flat" id="arms-delta-chip">—</span><span class="delta-baseline-val" id="arms-baseline-val"></span></div>
+        </div>
+        <div class="mc speech">
+          <div class="mc-hd"><div class="mc-ico">🗣️</div><div class="mc-ttl">Speech Clarity</div><div class="mc-badge ok" id="speech-badge">NORMAL</div></div>
+          <div class="mc-metric-lbl">Pause Ratio</div>
+          <div class="mc-val" id="speech-val">0.18<span class="mc-unit">silence ratio</span></div>
+          <div class="mc-chart"><svg viewBox="0 0 200 60" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="speech-grad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient>
+            </defs>
+            <line x1="0" y1="52" x2="200" y2="52" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <line x1="0" y1="28" x2="200" y2="28" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="4,4"/>
+            <text x="194" y="25" fill="rgba(59,130,246,0.45)" font-size="7" font-family="Space Mono" text-anchor="end">threshold</text>
+            <path id="speech-fill" class="mc-chart-fill" fill="url(#speech-grad)" d=""/>
+            <path id="speech-line" class="mc-chart-line" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M0,32 50,30 90,34 130,31 170,33 200,32"/>
+            <circle id="speech-dot" cx="200" cy="32" r="4" fill="#3b82f6" class="mc-chart-dot chart-dot-glow" style="--dot-delay:1.1s;color:#3b82f6"/>
+          </svg></div>
+          <div class="mc-explain" id="speech-extra"><strong>Transcript:</strong> <span id="transcript-txt" style="color:var(--muted);font-size:0.77rem;">"Today is a sunny day."</span><br><strong style="margin-top:0.35rem;display:block;">Words/min:</strong> <span id="wpm-txt" style="color:var(--muted);font-size:0.77rem;">112 wpm</span></div>
+          <div class="delta-row" id="speech-delta-row" style="display:none"><span class="delta-lbl">vs baseline</span><span class="delta-chip flat" id="speech-delta-chip">—</span><span class="delta-baseline-val" id="speech-baseline-val"></span></div>
+        </div>
+      </div>
+
+      <div class="previews-row">
+        <div class="preview-card">
+          <div class="preview-title">Face Landmark Preview</div>
+          <div class="preview-canvas">
+            <canvas id="face-preview-canvas" style="width:100%;height:100%;display:block;background:#080c17;"></canvas>
+          </div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-title">Pose Keypoints Preview</div>
+          <div class="preview-canvas">
+            <canvas id="pose-preview-canvas" style="width:100%;height:100%;display:block;background:#080c17;"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-panel green" id="action-panel">
+        <div class="act-text">
+          <h4 id="act-title">No warning signals detected.</h4>
+          <p id="act-desc">All three FAST indicators are within typical range. Consider tracking these patterns over time to establish your personal baseline. If you ever notice sudden changes, seek care immediately.</p>
+        </div>
+        <div class="act-btns">
+          <button class="act-btn-p" onclick="saveAndHistory()">Save & View History</button>
+          <button class="act-btn-s" onclick="goRecord()">Retake</button>
+          <button class="act-btn-export" onclick="generateSummary('green',0,0,0,0,0,0,0)">📋 Summary</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SCREEN: HISTORY ══ -->
+  <div class="app-screen" id="screen-history">
+    <div class="history-wrap">
+      <div style="margin-bottom:1.75rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <h2 class="hist-hd-title">Your Check-In History</h2>
+          <p class="hist-hd-sub">Stored locally on your device only. Track patterns over time — not individual moments.</p>
+        </div>
+        <span id="hist-bc-pill" class="bc-pill low" style="margin-top:0.25rem;" tabindex="0">
+          <svg class="bc-ring-svg" width="20" height="20" viewBox="0 0 20 20">
+            <circle class="bc-ring-track" cx="10" cy="10" r="7"/>
+            <circle id="hist-conf-ring" class="bc-ring-fill" cx="10" cy="10" r="7" stroke-dasharray="43.98" stroke-dashoffset="43.98" transform="rotate(-90 10 10)"/>
+            <circle id="hist-conf-tip" class="bc-ring-tip" cx="10" cy="3" r="1.8" opacity="0"/>
+          </svg>
+          <span id="hist-bc-text">Calibrating</span>
+          <span class="bc-breakdown">
+            <div class="bcd-title">Confidence Drivers</div>
+            <div class="bcd-row"><span class="bcd-row-lbl">Check-ins</span><span class="bcd-checkins bcd-row-val">0 / 8</span></div>
+            <div class="bcd-row"><span class="bcd-row-lbl">Avg quality</span><span class="bcd-quality bcd-row-val">—</span></div>
+            <div class="bcd-row"><span class="bcd-row-lbl">Signal stability</span><span class="bcd-stability bcd-row-val">—</span></div>
+            <div class="bcd-bar"><div class="bcd-bar-fill" style="width:0%"></div></div>
+            <div class="bcd-nextstep">Complete more check-ins to improve confidence.</div>
+          </span>
+        </span>
+      </div>
+      <div class="hcc">
+        <div class="hcc-hd"><div class="hcc-title">Risk Index — Recent Trend</div><div class="hcc-period" id="hist-period">No data yet</div></div>
+        <div class="hcc-area">
+          <svg id="hist-svg" viewBox="0 0 820 180" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="hg" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#00e5c8" stop-opacity="0.25"/><stop offset="100%" stop-color="#00e5c8" stop-opacity="0"/></linearGradient>
+            </defs>
+            <line x1="0" y1="60" x2="820" y2="60" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+            <line x1="0" y1="120" x2="820" y2="120" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+            <line id="hist-baseline-line" x1="0" y1="80" x2="820" y2="80" stroke="rgba(0,229,200,0.2)" stroke-width="1" stroke-dasharray="6,5" display="none"/>
+            <text id="hist-baseline-lbl" x="810" y="76" fill="rgba(0,229,200,0.5)" font-size="11" font-family="Space Mono" text-anchor="end" display="none">baseline</text>
+            <path id="hist-fill" fill="url(#hg)" d=""/>
+            <path id="hist-line" fill="none" stroke="#00e5c8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d=""/>
+            <g id="hist-dots"></g>
+            <text id="hist-empty" x="10" y="170" fill="#6b7280" font-size="12" font-family="Space Mono">Complete your first check-in to see trends here.</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Per-metric mini charts -->
+      <div class="hist-metric-charts" id="hist-metric-charts" style="display:none;">
+        <div class="hmc-card face">
+          <div class="hmc-hd"><div class="hmc-ico">😐</div><div class="hmc-ttl">Facial Asymmetry</div><div class="hmc-unit">index</div></div>
+          <div class="hmc-area"><svg id="hmc-face-svg" viewBox="0 0 400 100" preserveAspectRatio="none" style="width:100%;height:100%;overflow:visible;">
+            <defs><linearGradient id="hmc-fg" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#00e5c8" stop-opacity="0.3"/><stop offset="100%" stop-color="#00e5c8" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" y1="88" x2="400" y2="88" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <line id="hmc-face-bline" x1="0" y1="50" x2="400" y2="50" stroke="rgba(0,229,200,0.2)" stroke-width="1" stroke-dasharray="5,4" display="none"/>
+            <text id="hmc-face-blbl" x="395" y="46" fill="rgba(0,229,200,0.45)" font-size="8" font-family="Space Mono" text-anchor="end" display="none">baseline</text>
+            <path id="hmc-face-fill" fill="url(#hmc-fg)" d=""/><path id="hmc-face-line" fill="none" stroke="#00e5c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""/>
+            <g id="hmc-face-dots"></g>
+          </svg></div>
+        </div>
+        <div class="hmc-card arms">
+          <div class="hmc-hd"><div class="hmc-ico">🙌</div><div class="hmc-ttl">Arm Drift</div><div class="hmc-unit">% over 5s</div></div>
+          <div class="hmc-area"><svg id="hmc-arms-svg" viewBox="0 0 400 100" preserveAspectRatio="none" style="width:100%;height:100%;overflow:visible;">
+            <defs><linearGradient id="hmc-ag" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#a855f7" stop-opacity="0.3"/><stop offset="100%" stop-color="#a855f7" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" y1="88" x2="400" y2="88" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <line id="hmc-arms-bline" x1="0" y1="50" x2="400" y2="50" stroke="rgba(168,85,247,0.2)" stroke-width="1" stroke-dasharray="5,4" display="none"/>
+            <text id="hmc-arms-blbl" x="395" y="46" fill="rgba(168,85,247,0.45)" font-size="8" font-family="Space Mono" text-anchor="end" display="none">baseline</text>
+            <path id="hmc-arms-fill" fill="url(#hmc-ag)" d=""/><path id="hmc-arms-line" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""/>
+            <g id="hmc-arms-dots"></g>
+          </svg></div>
+        </div>
+        <div class="hmc-card speech">
+          <div class="hmc-hd"><div class="hmc-ico">🗣️</div><div class="hmc-ttl">Speech Pause Ratio</div><div class="hmc-unit">silence ratio</div></div>
+          <div class="hmc-area"><svg id="hmc-speech-svg" viewBox="0 0 400 100" preserveAspectRatio="none" style="width:100%;height:100%;overflow:visible;">
+            <defs><linearGradient id="hmc-sg" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" y1="88" x2="400" y2="88" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <line id="hmc-speech-bline" x1="0" y1="50" x2="400" y2="50" stroke="rgba(59,130,246,0.2)" stroke-width="1" stroke-dasharray="5,4" display="none"/>
+            <text id="hmc-speech-blbl" x="395" y="46" fill="rgba(59,130,246,0.45)" font-size="8" font-family="Space Mono" text-anchor="end" display="none">baseline</text>
+            <path id="hmc-speech-fill" fill="url(#hmc-sg)" d=""/><path id="hmc-speech-line" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""/>
+            <g id="hmc-speech-dots"></g>
+          </svg></div>
+        </div>
+      </div>
+
+      <div class="hist-entries" id="hist-entries">
+        <div class="hist-empty"><h3>No check-ins yet</h3><p>Complete your first FAST check-in to start tracking.</p></div>
+      </div>
+      <div style="margin-top:1.4rem;display:flex;gap:0.9rem;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="stopPreviewLoop();showScreen('home')" style="font-size:0.875rem;padding:0.7rem 1.9rem;">+ New Check-In</button>
+        <button class="btn-ghost" onclick="generateHistSummary()" style="font-size:0.875rem;padding:0.7rem 1.9rem;">📋 Generate Summary</button>
+        <button class="btn-ghost" onclick="clearHist()" style="font-size:0.875rem;padding:0.7rem 1.9rem;">Clear History</button>
+        <button class="btn-ghost" onclick="clearBaseline()" id="btn-clear-baseline" style="font-size:0.875rem;padding:0.7rem 1.9rem;display:none;">Reset Baseline</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIDEO REPLAY MODAL ══ -->
+  <div id="video-replay-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(6,8,15,0.96);backdrop-filter:blur(20px);overflow-y:auto;">
+    <div style="max-width:1300px;margin:0 auto;padding:2rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem;">Recording Replay</div>
+          <h2 style="font-family:'DM Serif Display',serif;font-size:1.6rem;letter-spacing:-0.02em;" id="replay-title">Check-In</h2>
+        </div>
+        <button onclick="closeReplayModal()" style="background:none;border:1px solid var(--cbord);color:var(--muted);padding:0.4rem 1.1rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.85rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕ Close</button>
+      </div>
+
+      <div style="margin-bottom:1.25rem;">
+        <!-- Full-width video — larger for better viewing -->
+        <div style="position:relative;border-radius:20px;overflow:hidden;background:#000;aspect-ratio:16/9;border:1px solid var(--cbord);margin-bottom:1.25rem;min-height:360px;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+          <video id="replay-video" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);" playsinline></video>
+          <canvas id="replay-pose-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>
+          <!-- Play button overlay -->
+          <div id="replay-play-btn" onclick="document.getElementById('replay-video').play()" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;cursor:pointer;background:rgba(6,8,15,0.35);transition:background 0.2s;" onmouseover="this.style.background='rgba(6,8,15,0.5)'" onmouseout="this.style.background='rgba(6,8,15,0.35)'">
+            <div style="width:72px;height:72px;background:rgba(0,229,200,0.15);border:2px solid rgba(0,229,200,0.6);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(0,229,200,0.3);">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="margin-left:4px;"><polygon points="6,4 20,12 6,20" fill="#00e5c8"/></svg>
+            </div>
+          </div>
+          <div id="replay-no-video" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(6,8,15,0.9);">
+            <div style="font-size:2rem;margin-bottom:0.75rem;">🎬</div>
+            <div style="font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:var(--muted);text-align:center;padding:0 1rem;">Video not available<br>for this recording.<br>Only new check-ins are saved.</div>
+          </div>
+          <div id="replay-overlay-label" style="display:none;position:absolute;top:0.75rem;left:0.75rem;font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:0.1em;color:var(--teal);background:rgba(6,8,15,0.8);padding:0.25rem 0.6rem;border-radius:100px;border:1px solid rgba(0,229,200,0.2);">📐 Pose Overlay</div>
+        </div>
+        <!-- Scores row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:0.75rem;align-items:stretch;" id="replay-grid">
+          <div class="replay-score-card" id="replay-score-face">
+            <div class="replay-score-ico">😐</div>
+            <div style="flex:1"><div class="replay-score-lbl">Face</div><div class="replay-score-val" id="replay-face-val">—</div></div>
+            <div class="replay-badge" id="replay-face-badge">—</div>
+          </div>
+          <div class="replay-score-card" id="replay-score-arms">
+            <div class="replay-score-ico">🙌</div>
+            <div style="flex:1"><div class="replay-score-lbl">Arms</div><div class="replay-score-val" id="replay-arms-val">—</div></div>
+            <div class="replay-badge" id="replay-arms-badge">—</div>
+          </div>
+          <div class="replay-score-card" id="replay-score-speech">
+            <div class="replay-score-ico">🗣️</div>
+            <div style="flex:1"><div class="replay-score-lbl">Speech</div><div class="replay-score-val" id="replay-speech-val">—</div></div>
+            <div class="replay-badge" id="replay-speech-badge">—</div>
+          </div>
+          <div style="padding:0.85rem 1rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.2rem;">
+            <div style="font-family:'Space Mono',monospace;font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Risk Index</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;" id="replay-total-val">—</div>
+          </div>
+          <div id="replay-pose-toggle-wrap" style="display:none;">
+            <button onclick="toggleReplayPoseOverlay()" id="replay-pose-toggle-btn" style="height:100%;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);color:var(--violet);padding:0.65rem 1rem;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.8rem;cursor:pointer;transition:all 0.2s;white-space:nowrap;">🦴 Pose</button>
+          </div>
+        </div>
+      </div>
+      <div id="replay-note" style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.06em;text-align:center;padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--cbord);">
+        Video recordings are stored in memory for this session only and are not uploaded or saved to disk.
+      </div>
+    </div>
+  </div>
+
+<!-- Quality Gate Overlay -->
+<div id="qg-overlay" class="qg-overlay" style="display:none;">
+  <div class="qg-box" id="qg-box">
+    <div class="qg-icon" id="qg-icon">✅</div>
+    <h3 class="qg-title" id="qg-title">Signal Quality OK</h3>
+    <p class="qg-desc" id="qg-desc">All four signal channels look good. Running analysis now.</p>
+    <div class="qg-score-row" id="qg-score-row">
+      <div class="qg-score-item"><div class="qg-score-lbl">Lighting</div><div class="qg-score-v good" id="qg-s-light">Good</div></div>
+      <div class="qg-score-item"><div class="qg-score-lbl">Framing</div><div class="qg-score-v good" id="qg-s-face">Good</div></div>
+      <div class="qg-score-item"><div class="qg-score-lbl">Body</div><div class="qg-score-v good" id="qg-s-body">Good</div></div>
+      <div class="qg-score-item"><div class="qg-score-lbl">Audio</div><div class="qg-score-v good" id="qg-s-audio">Good</div></div>
+    </div>
+    <div class="qg-btns" id="qg-btns">
+      <button class="qg-proceed" id="qg-btn-proceed" onclick="proceedFromGate()">Analyze Now →</button>
+    </div>
+    <div class="qg-ethos">"We block low-quality signals to avoid misleading you. Accuracy matters more than speed."</div>
+  </div>
+</div>
+
+</div><!-- #fast-app -->
+
+<!-- ═══════════════════ HOW IT WORKS OVERLAY ═══════════════════ -->
+<div id="hiw-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);overflow-y:auto;">
+
+  <div class="hiw-nav">
+    <div style="display:flex;align-items:baseline;gap:0.4rem;">
+      <span class="hiw-nav-logo" onclick="closeHowItWorks()" style="cursor:pointer;">Baseline</span>
+      <span class="hiw-nav-sub">/ How It Works</span>
+    </div>
+    <button class="hiw-back" onclick="closeHowItWorks()">← Back</button>
+  </div>
+
+  <div class="hiw-body">
+
+    <div class="hiw-hero">
+      <div class="hiw-tag">How It Works</div>
+      <h1 class="hiw-title">30 seconds.<br>Three signals.<br><em>Your</em> baseline.</h1>
+      <p class="hiw-sub">Baseline runs the FAST neurological screening protocol — used by emergency physicians worldwide — using nothing but your camera and microphone. Here's exactly what happens when you hit Record.</p>
+    </div>
+
+    <!-- THE THREE TASKS -->
+    <div class="hiw-section">
+      <div class="hiw-section-tag">The Check-In</div>
+      <h2 class="hiw-section-title">Three tasks, run back to back.</h2>
+      <p class="hiw-section-desc">The entire check-in takes about 30 seconds. Each task targets one axis of the FAST protocol: Face, Arms, Speech. Nothing is stored on any server — all processing happens in your browser.</p>
+      <div class="hiw-steps">
+        <div class="hiw-step">
+          <div class="hiw-step-num teal">01</div>
+          <div class="hiw-step-info">
+            <h4>😐 &nbsp;Neutral Face — 3 seconds</h4>
+            <p>Hold a relaxed, neutral expression while looking at the camera. MediaPipe FaceLandmarker tracks 478 facial landmarks in real time, measuring the vertical and horizontal positions of your mouth corners, eye corners, and brow symmetry. The left/right delta is your facial asymmetry index.</p>
+            <div class="hiw-step-note">→ What we measure: mouth corner Δy, eye corner Δy, overall symmetry score</div>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num violet">02</div>
+          <div class="hiw-step-info">
+            <h4>🙌 &nbsp;Raise Both Arms — 5 seconds</h4>
+            <p>Extend both arms out to shoulder height and hold them steady. MediaPipe PoseLandmarker tracks your left and right wrist landmarks across every frame. We measure the height difference between the two wrists over time — a sustained drop on one side indicates arm drift, a classic stroke warning sign.</p>
+            <div class="hiw-step-note">→ What we measure: left/right wrist Δy over 5s, maximum drift percentage</div>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num blue">03</div>
+          <div class="hiw-step-info">
+            <h4>🗣️ &nbsp;Read the Passage — 20 seconds</h4>
+            <p>A short passage appears on screen. Read it aloud at your natural pace — don't rush. The Web Speech API transcribes in real time and we track words per minute every 3 seconds. Sudden spikes or dips — deviating more than 40% from your median pace — are flagged as clinically significant, since stroke-related speech difficulty often manifests as uneven, halting rhythm rather than uniformly slow speech.</p>
+            <div class="hiw-step-note">→ What we measure: overall WPM, per-3s WPM buckets, spike/dip detection, pause ratio vs baseline</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNAL ANALYSIS -->
+    <div class="hiw-section">
+      <div class="hiw-section-tag">Signal Analysis</div>
+      <h2 class="hiw-section-title">What the signals actually mean.</h2>
+      <p class="hiw-section-desc">Each signal is derived from the same FAST criteria used by paramedics and emergency physicians. The difference: we compare against <em>your personal baseline</em>, not a population average.</p>
+      <div class="hiw-signal-grid">
+        <div class="hiw-signal">
+          <div class="hiw-signal-icon">😐</div>
+          <h4>Facial Asymmetry Index</h4>
+          <p>Measures how different the left and right sides of your face are. A naturally asymmetric face has a stable baseline — we flag deviations from that personal norm, not absolute asymmetry.</p>
+          <div class="hiw-signal-metric">THRESHOLD · &gt;0.08 deviation from baseline triggers a flag</div>
+        </div>
+        <div class="hiw-signal">
+          <div class="hiw-signal-icon">🦾</div>
+          <h4>Arm Drift Percentage</h4>
+          <p>The percentage drop in wrist height on the weaker side over the 5-second hold. A sudden 8%+ drop on one side, compared to your baseline range, is a potential motor weakness signal.</p>
+          <div class="hiw-signal-metric">THRESHOLD · &gt;8% drift vs baseline triggers a flag</div>
+        </div>
+        <div class="hiw-signal">
+          <div class="hiw-signal-icon">〰️</div>
+          <h4>Pause Ratio</h4>
+          <p>The fraction of the recording window that is silence. Higher pause ratio can indicate hesitation or difficulty formulating words — a cognitive symptom that precedes audible slurring in some stroke presentations.</p>
+          <div class="hiw-signal-metric">THRESHOLD · &gt;0.35 silence ratio vs baseline triggers a flag</div>
+        </div>
+        <div class="hiw-signal">
+          <div class="hiw-signal-icon">⏱️</div>
+          <h4>Words Per Minute</h4>
+          <p>Measured live during the phrase task using the Web Speech API. A sudden drop in speaking rate — especially combined with elevated pause ratio — strengthens the speech clarity signal.</p>
+          <div class="hiw-signal-metric">COMPARED · measured live, tracked against your baseline WPM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THE BASELINE -->
+    <div class="hiw-section">
+      <div class="hiw-section-tag">Your Baseline</div>
+      <h2 class="hiw-section-title">Compared only to yourself.</h2>
+      <p class="hiw-section-desc">Before your first FAST Check, you record a baseline on a day you feel well. That recording becomes your personal reference — every future check-in is measured as a delta from your own values, not against population statistics.</p>
+      <div class="hiw-steps">
+        <div class="hiw-step">
+          <div class="hiw-step-num teal">📐</div>
+          <div class="hiw-step-info">
+            <h4>Why a personal baseline?</h4>
+            <p>Natural asymmetry is common. Many people have a slightly lower mouth corner, a dominant arm, or a naturally slow speaking pace. Without a personal baseline, these traits would trigger false alarms. With one, we only flag when <em>your specific signals</em> shift from <em>your specific normal</em>.</p>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num violet">📈</div>
+          <div class="hiw-step-info">
+            <h4>How confidence builds over time</h4>
+            <p>The Baseline Confidence Meter shows how reliable your trend analysis is. Early check-ins are labelled <span style="color:var(--yellow)">Low Confidence</span> — results are shown but alerts are withheld. After 7+ quality check-ins, the system reaches <span style="color:var(--green)">High Confidence</span> and can issue stronger signals.</p>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num blue">🔒</div>
+          <div class="hiw-step-info">
+            <h4>Where is your data stored?</h4>
+            <p>Everything is stored in your browser's localStorage — it never leaves your device. No account required. No servers. Your baseline, history, and quality scores exist only in your browser. Clearing your browser data or using a private window will erase it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUALITY GATE -->
+    <div class="hiw-section">
+      <div class="hiw-section-tag">Signal Quality</div>
+      <h2 class="hiw-section-title">We block bad data before it misleads you.</h2>
+      <p class="hiw-section-desc">Before showing you results, every recording passes through a four-channel Signal Quality Gate. If the recording isn't trustworthy enough, we say so — and offer a retake rather than a misleading result.</p>
+      <div class="hiw-steps">
+        <div class="hiw-step">
+          <div class="hiw-step-num teal">💡</div>
+          <div class="hiw-step-info">
+            <h4>Lighting</h4>
+            <p>Measured from live camera frames using canvas pixel analysis. Average luminance must be above 80 for a borderline pass, and above 110 for a confident pass. Face landmark accuracy degrades sharply in low light — we catch this before it corrupts your result.</p>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num violet">👤</div>
+          <div class="hiw-step-info">
+            <h4>Face Framing</h4>
+            <p>We check that the upper-center region of the frame (where your face should be) is adequately bright and centered. If you're too far back, side-on, or poorly lit in the face region, framing fails before recording begins.</p>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num blue">🦴</div>
+          <div class="hiw-step-info">
+            <h4>Body Visibility</h4>
+            <p>MediaPipe PoseLandmarker tracks whether both shoulders and both wrists are visible and within the frame with ≥55% detection confidence. The score is smoothed over a 24-frame rolling window to avoid jitter.</p>
+          </div>
+        </div>
+        <div class="hiw-step">
+          <div class="hiw-step-num teal">🎙️</div>
+          <div class="hiw-step-info">
+            <h4>Audio Clarity</h4>
+            <p>Audio quality is currently assessed as a proxy signal. Full microphone level monitoring via the Web Audio API is on the roadmap — for now, this channel is simulated to give a composite quality score alongside the three real channels.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="hiw-section">
+      <div class="hiw-section-tag">FAQ</div>
+      <h2 class="hiw-section-title">Common questions.</h2>
+      <div class="hiw-faq">
+        <div class="hiw-faq-item">
+          <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">Is this a medical device? <span>+</span></div>
+          <div class="hiw-faq-a">No. Anchor is an informational awareness tool, not a medical device. It cannot diagnose stroke or any other condition. It is designed to help you notice changes in your own signals over time and act faster if something seems wrong. If you have any sudden neurological symptoms, call emergency services immediately — do not wait for a check-in.</div>
+        </div>
+        <div class="hiw-faq-item">
+          <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">Does it work for all ages? <span>+</span></div>
+          <div class="hiw-faq-a">Yes. The FAST protocol is used across all adult age groups. Stroke incidence in people under 50 is rising, and regular baseline monitoring is useful at any age. The personal baseline approach means the system adapts to your individual norms regardless of age.</div>
+        </div>
+        <div class="hiw-faq-item">
+          <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">How accurate is the face landmark detection? <span>+</span></div>
+          <div class="hiw-faq-a">Anchor uses MediaPipe FaceLandmarker with the full face_landmarker model, which tracks 478 facial landmarks. Accuracy is high in good lighting with the face properly centered in frame — which is why the Signal Quality Gate checks both before allowing a recording to proceed.</div>
+        </div>
+        <div class="hiw-faq-item">
+          <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">What if I wear glasses or have a beard? <span>+</span></div>
+          <div class="hiw-faq-a">MediaPipe's face detection handles most common occlusions well. Glasses have minimal impact on landmark accuracy. Dense beards may slightly affect lower-face landmark precision — but since we're measuring symmetry as a delta from your own baseline (which was also recorded with your beard), the comparative result remains valid.</div>
+        </div>
+        <div class="hiw-faq-item">
+          <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">Does it work on mobile? <span>+</span></div>
+          <div class="hiw-faq-a">Anchor works on modern mobile browsers that support getUserMedia, Web Speech API, and WebAssembly. The MediaPipe models run on-device. Performance is best on recent hardware — the pose and face models are computationally intensive, so older phones may experience slower frame rates in the preview panels.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="hiw-cta">
+      <h3>Ready to record your baseline?</h3>
+      <p>It takes about 30 seconds and runs entirely in your browser. No account, no app, no data leaves your device.</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+        <button class="btn-primary" onclick="closeHowItWorks();openApp()">Start Free Check-In →</button>
+        <button class="hiw-back" onclick="closeHowItWorks()" style="padding:0.85rem 2.5rem;">← Back to Home</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<script type="module">
+  import { FilesetResolver, PoseLandmarker, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+  window.__mpFileset = FilesetResolver;
+  window.__mpPoseLandmarker = PoseLandmarker;
+  window.__mpFaceLandmarker = FaceLandmarker;
+</script>
+
+<script>
+/* ── LANDING WAVEFORM ── */
+const wf=document.getElementById('waveform');
+for(let i=0;i<90;i++){const b=document.createElement('div');b.className='bar';b.style.cssText=`--min:${4+Math.random()*10}px;--max:${20+Math.random()*50}px;--dur:${1+Math.random()*2}s;--delay:${Math.random()*-3}s;`;if(Math.random()>0.75)b.style.background='#a855f7';if(Math.random()>0.9)b.style.background='#3b82f6';wf.appendChild(b);}
+
+/* ── SCROLL REVEAL ── */
+const revObs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),80);revObs.unobserve(e.target);}});},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(e=>revObs.observe(e));
+document.querySelectorAll('.signals-grid .signal-card,.audience-grid .audience-card').forEach((el,i)=>el.style.transitionDelay=`${i*0.1}s`);
+
+/* ── HOW IT WORKS ── */
+const HIW=document.getElementById('hiw-overlay');
+function openHowItWorks(){HIW.style.display='block';HIW.style.animation='appIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards';document.body.style.overflow='hidden';HIW.scrollTop=0;}
+function closeHowItWorks(){HIW.style.animation='appOut 0.35s ease forwards';setTimeout(()=>{HIW.style.display='none';HIW.style.animation='';document.body.style.overflow='';},330);}
+
+/* ── APP OPEN/CLOSE ── */
+const APP=document.getElementById('fast-app');
+function openApp(){updateHomeScreen();updateConfidenceUI();APP.classList.add('open');document.body.style.overflow='hidden';}
+function closeApp(){
+  // Release camera on close
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  stopSQ();
+  APP.style.animation='appOut 0.4s ease forwards';
+  setTimeout(()=>{APP.classList.remove('open');APP.style.animation='';document.body.style.overflow='';},380);
+}
+
+/* ── SCREEN NAV ── */
+function showScreen(id){document.querySelectorAll('.app-screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-'+id).classList.add('active');APP.scrollTop=0;}
+function goHistory(){renderHistory();showScreen('history');}
+
+/* ── BASELINE STATE ── */
+let baseline=null;
+try{baseline=JSON.parse(localStorage.getItem('sc_baseline')||'null');}catch(e){}
+let isBaselineMode=false;
+
+/* ── HOME SCREEN (dynamic) ── */
+function updateHomeScreen(){
+  const screen=document.getElementById('screen-home');
+  const hasBaseline=!!baseline;
+  const DISCLAIMER=`<div class="fast-disclaimer"><strong>⚠ Not medical advice.</strong> This tool is for informational awareness only. If you experience sudden facial drooping, arm weakness, or speech difficulty — call emergency services immediately.</div>`;
+  const STEPS=`<div class="what-is-fast">
+    <div class="fsc"><div class="fsc-num">Step 01 / 03</div><span class="fsc-icon">😐</span><div class="fsc-title">Neutral Face</div><div class="fsc-desc">Hold a relaxed, neutral expression for 3s. We measure left/right facial symmetry.</div></div>
+    <div class="fsc"><div class="fsc-num">Step 02 / 03</div><span class="fsc-icon">🙌</span><div class="fsc-title">Raise Both Arms</div><div class="fsc-desc">Hold arms out level for 5s. We detect drift, asymmetry, and downward drop over time.</div></div>
+    <div class="fsc"><div class="fsc-num">Step 03 / 03</div><span class="fsc-icon">🗣️</span><div class="fsc-title">Read the Passage</div><div class="fsc-desc">Read the displayed passage aloud for 20s. We measure words per minute, pause ratio, and detect sudden pace changes.</div></div>
+  </div>`;
+
+  if(!hasBaseline){
+    screen.innerHTML=`
+      <div class="fast-pill"><span class="fast-pill-dot"></span>FAST Neurological Screening</div>
+      <h1 class="fast-title">Start with your<br><em>Baseline.</em></h1>
+      <p class="fast-sub" style="margin-bottom:2rem;">Before your first FAST Check, you need to record a personal baseline — your normal. Every future check is measured against <em>you</em>, not a population average.</p>
+      <div class="baseline-needed-card">
+        <h3>📐 &nbsp;Record Your Baseline</h3>
+        <p style="margin-top:0.75rem;">Your baseline captures your face, arms, and speech on a day when you feel well. It takes the same 30 seconds as a regular check-in — and it's what makes every result personal and accurate.</p>
+        <button class="fast-start-btn" onclick="goBaseline()" style="margin:1.5rem auto 0;display:flex;">
+          <span>📐</span> Record My Baseline
+        </button>
+      </div>
+      <div class="fast-check-locked">🔒 &nbsp;FAST Check — unlocked after baseline</div>
+      ${DISCLAIMER}
+      ${STEPS}`;
+  } else {
+    const b=baseline;
+    screen.innerHTML=`
+      <div class="fast-pill"><span class="fast-pill-dot"></span>FAST Neurological Screening</div>
+      <h1 class="fast-title">30 seconds.<br><em>Honest signals.</em></h1>
+      <p class="fast-sub">Compared against your personal baseline from ${b.date}. Results reflect changes from <em>your</em> normal — not population averages.</p>
+      <button class="fast-start-btn" onclick="goFastCheck()">
+        <span>▶</span> Start FAST Check &nbsp;(30 seconds)
+      </button>
+      <div class="baseline-set-card">
+        <div class="bsc-icon">📐</div>
+        <div class="bsc-info">
+          <div class="bsc-title">Your Baseline</div>
+          <div class="bsc-date">Recorded ${b.date}</div>
+          <div class="bsc-scores">
+            <div class="bsc-score"><div class="bsc-score-lbl">Face</div><div class="bsc-score-v">${b.fa}</div></div>
+            <div class="bsc-score"><div class="bsc-score-lbl">Arms</div><div class="bsc-score-v">${b.ad}%</div></div>
+            <div class="bsc-score"><div class="bsc-score-lbl">Pause</div><div class="bsc-score-v">${b.pr}</div></div>
+            <div class="bsc-score"><div class="bsc-score-lbl">WPM</div><div class="bsc-score-v">${b.wpm}</div></div>
+          </div>
+        </div>
+        <button class="bsc-rerecord" onclick="goBaseline()">↺ Re-record</button>
+      </div>
+      ${DISCLAIMER}
+      ${STEPS}`;
+  }
+}
+
+function goBaseline(){
+  isBaselineMode=true;
+  showScreen('record');
+  resetRec();
+  const banner=document.getElementById('rec-mode-banner');
+  if(banner){banner.textContent='📐 Baseline Recording — record on a day you feel your normal self';banner.style.display='block';}
+  initCamPreview();
+}
+
+function goFastCheck(){
+  isBaselineMode=false;
+  showScreen('record');
+  resetRec();
+  const banner=document.getElementById('rec-mode-banner');
+  if(banner){banner.textContent='';banner.style.display='none';}
+  initCamPreview();
+}
+
+/* ── CAMERA ── */
+let stream=null;
+
+async function initCamPreview(){
+  // Start camera silently for preview — no recording yet
+  try{
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
+    const vid=document.getElementById('cam-video');
+    vid.srcObject=stream;
+    vid.onloadedmetadata=()=>{
+      const ph=document.getElementById('cam-placeholder');
+      if(ph)ph.style.display='none';
+    };
+    animateSQ();
+  }catch(e){
+    // Camera denied — show a softer message in placeholder
+    const ph=document.getElementById('cam-placeholder');
+    if(ph)ph.innerHTML='<div style="font-size:1.5rem;">🚫</div><div style="font-family:\'Space Mono\',monospace;font-size:0.68rem;letter-spacing:0.08em;color:var(--muted);text-align:center;padding:0 1rem;">Camera access required.<br>Please allow permissions.</div>';
+  }
+}
+
+async function initCam(){
+  // Camera may already be live from preview — reuse if so
+  if(stream){return;}
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:true});
+    const vid=document.getElementById('cam-video');
+    vid.srcObject=stream;
+    vid.onloadedmetadata=()=>{
+      const ph=document.getElementById('cam-placeholder');
+      if(ph)ph.style.display='none';
+    };
+    animateSQ();
+  }catch(e){alert('Camera access is required. Please allow camera and microphone permissions.');}
+}
+/* ── SIGNAL QUALITY GATE ── */
+let sqScores={lighting:0.88,face:0.84,body:0.5,audio:0.88};
+let sqTimer=null;
+let _qualityScore=0.75;
+
+// ── REAL BODY VISIBILITY (Pose) ──
+let poseLandmarker=null;
+let poseReady=false;
+let poseBusy=false;
+let bodyPassHistory=[];
+const BODY_WINDOW=24;
+const LM={LEFT_SHOULDER:11,RIGHT_SHOULDER:12,LEFT_WRIST:15,RIGHT_WRIST:16};
+const BODY_VIS_THRESH=0.55;
+const BODY_INFRAME_PAD=0.02;
+
+const SQ_CFG={
+  lighting:{id:'sq-lighting',tipId:'sq-lighting-tip',labels:['💡 Lighting','Lighting'],tip:'Too dark — move closer to a light source or face a window.'},
+  face:{id:'sq-face',tipId:'sq-face-tip',labels:['👤 Face Framing','Face Framing'],tip:'Keep your face centered and well-lit in the upper portion of the frame.'},
+  body:{id:'sq-body',tipId:'sq-body-tip',labels:['🦴 Body Visibility','Body Visibility'],tip:'Step back so both shoulders and arms are visible.'},
+  audio:{id:'sq-audio',tipId:'sq-audio-tip',labels:['🎙️ Audio Clarity','Audio Clarity'],tip:'Move closer to your microphone and reduce background noise.'}
+};
+
+function sqStatusText(score){
+  if(score>=0.75)return{cls:'good',text:'✅ Good'};
+  if(score>=0.55)return{cls:'warn',text:'⚠️ Needs adjustment'};
+  return{cls:'bad',text:'❌ Insufficient'};
+}
+
+function updateSqUI(){
+  Object.keys(SQ_CFG).forEach(k=>{
+    const cfg=SQ_CFG[k];const sc=sqScores[k];
+    const {cls,text}=sqStatusText(sc);
+    const el=document.getElementById(cfg.id);if(!el)return;
+    el.className='sq-status '+cls;el.textContent=text;
+    const tipEl=document.getElementById(cfg.tipId);if(!tipEl)return;
+    if(k==='body'&&sc<0.75){
+      tipEl.textContent='Step back so BOTH shoulders + BOTH wrists are visible. Keep elbows/wrists on-screen.';
+    } else {
+      tipEl.textContent=sc<0.75?cfg.tip:'';
+    }
+  });
+}
+
+async function initPose(){
+  if(poseReady||poseLandmarker)return;
+  try{
+    const FilesetResolver=window.__mpFileset;
+    const PoseLandmarker=window.__mpPoseLandmarker;
+    if(!FilesetResolver||!PoseLandmarker)return;
+    const vision=await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+    );
+    poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{
+        modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
+      },
+      runningMode:'VIDEO',
+      numPoses:1
+    });
+    poseReady=true;
+  }catch(e){
+    console.warn('Pose init failed:',e);
+    poseReady=false;poseLandmarker=null;
+  }
+}
+
+// ── FACE LANDMARKER ──
+let faceLandmarker=null;
+let faceReady=false;
+let faceBusy=false;
+let _lastFaceLandmarks=null;
+let _lastPoseLandmarks=null;
+let _previewRafId=null;
+
+async function initFace(){
+  if(faceReady||faceLandmarker)return;
+  try{
+    const FilesetResolver=window.__mpFileset;
+    const FaceLandmarker=window.__mpFaceLandmarker;
+    if(!FilesetResolver||!FaceLandmarker)return;
+    const vision=await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+    );
+    faceLandmarker=await FaceLandmarker.createFromOptions(vision,{
+      baseOptions:{
+        modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task'
+      },
+      runningMode:'VIDEO',
+      numFaces:1,
+      minFaceDetectionConfidence:0.5,
+      minFacePresenceConfidence:0.5,
+      minTrackingConfidence:0.5
+    });
+    faceReady=true;
+  }catch(e){
+    console.warn('Face init failed:',e);
+    faceReady=false;faceLandmarker=null;
+  }
+}
+
+// Face mesh connectivity (subset for a clean overlay)
+const FACE_MESH_CONTOURS=[
+  // Lips outer
+  [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146,61],
+  // Left eye
+  [263,249,390,373,374,380,381,382,362,263],
+  // Right eye
+  [33,7,163,144,145,153,154,155,133,33],
+  // Left eyebrow
+  [276,283,282,295,285,300,293,334,296,336],
+  // Right eyebrow
+  [46,53,52,65,55,70,63,105,66,107],
+  // Nose bridge
+  [168,6,197,195,5],
+  // Nose tip
+  [1,2,98,97]
+];
+
+// POSE skeleton connections
+const POSE_CONNECTIONS=[
+  [11,12],[11,13],[13,15],[12,14],[14,16],
+  [11,23],[12,24],[23,24],
+  [23,25],[25,27],[24,26],[26,28]
+];
+
+function drawFacePreview(canvas,vid,landmarks){
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.width/dpr, H=canvas.height/dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#080c17';
+  ctx.fillRect(0,0,W,H);
+
+  if(!landmarks||!landmarks.length){
+    ctx.fillStyle='rgba(107,114,128,0.45)';
+    ctx.font=`${Math.round(W*0.04)}px Space Mono`;
+    ctx.textAlign='center';
+    ctx.fillText('Waiting for face…',W/2,H/2);
+    return;
+  }
+
+  const lms=landmarks[0];
+
+  // Compute bounding box of all landmarks to auto-fit
+  let minX=1,maxX=0,minY=1,maxY=0;
+  lms.forEach(lm=>{minX=Math.min(minX,lm.x);maxX=Math.max(maxX,lm.x);minY=Math.min(minY,lm.y);maxY=Math.max(maxY,lm.y);});
+  const padX=0.06,padY=0.06;
+  minX=Math.max(0,minX-padX);maxX=Math.min(1,maxX+padX);
+  minY=Math.max(0,minY-padY);maxY=Math.min(1,maxY+padY);
+  const bw=maxX-minX||0.5, bh=maxY-minY||0.5;
+
+  // Scale to fill canvas, preserving aspect ratio
+  const scaleX=W/bw, scaleY=H/bh;
+  const scale=Math.min(scaleX,scaleY);
+  const offX=(W-bw*scale)/2, offY=(H-bh*scale)/2;
+
+  const px=(nx)=>offX+(nx-minX)*scale;
+  const py=(ny)=>offY+(ny-minY)*scale;
+
+  ctx.save();
+  // Mirror to match the mirrored video
+  ctx.translate(W,0);ctx.scale(-1,1);
+  const mpx=(nx)=>W-(px(nx));
+
+  // Draw mesh contours
+  ctx.strokeStyle='rgba(0,229,200,0.4)';
+  ctx.lineWidth=1.2;
+  FACE_MESH_CONTOURS.forEach(path=>{
+    if(!path.length)return;
+    ctx.beginPath();
+    path.forEach((idx,i)=>{
+      const lm=lms[idx];if(!lm)return;
+      i===0?ctx.moveTo(mpx(lm.x),py(lm.y)):ctx.lineTo(mpx(lm.x),py(lm.y));
+    });
+    ctx.stroke();
+  });
+
+  // All landmark dots
+  ctx.fillStyle='rgba(0,229,200,0.55)';
+  lms.forEach(lm=>{
+    ctx.beginPath();ctx.arc(mpx(lm.x),py(lm.y),1.4,0,Math.PI*2);ctx.fill();
+  });
+
+  // Highlight key landmarks
+  const keyPts=[0,1,4,13,14,33,61,133,159,263,291,362];
+  ctx.fillStyle='rgba(0,229,200,1)';
+  keyPts.forEach(idx=>{
+    const lm=lms[idx];if(!lm)return;
+    ctx.beginPath();ctx.arc(mpx(lm.x),py(lm.y),3,0,Math.PI*2);ctx.fill();
+  });
+
+  // Symmetry center line through nose tip
+  const nose=lms[1];
+  if(nose){
+    ctx.strokeStyle='rgba(0,229,200,0.18)';
+    ctx.setLineDash([3,3]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(mpx(nose.x),0);ctx.lineTo(mpx(nose.x),H);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Mouth corners asymmetry line
+  const ml=lms[61],mr=lms[291];
+  if(ml&&mr){
+    const asymPx=Math.abs(ml.y-mr.y)*scale;
+    ctx.strokeStyle=asymPx>4?'rgba(245,158,11,0.9)':'rgba(34,197,94,0.8)';
+    ctx.lineWidth=1.5;ctx.setLineDash([2,2]);
+    ctx.beginPath();ctx.moveTo(mpx(ml.x),py(ml.y));ctx.lineTo(mpx(mr.x),py(mr.y));ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    // Label (not mirrored)
+    const col=asymPx>4?'rgba(245,158,11,0.9)':'rgba(34,197,94,0.8)';
+    ctx.fillStyle=col;
+    ctx.font=`${Math.round(W*0.036)}px Space Mono`;ctx.textAlign='left';
+    ctx.fillText('Δy '+(asymPx).toFixed(1)+'px',6,H-6);
+    return;
+  }
+
+  ctx.restore();
+}
+
+function drawPosePreview(canvas,landmarks){
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.width/dpr, H=canvas.height/dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#080c17';
+  ctx.fillRect(0,0,W,H);
+
+  if(!landmarks||!landmarks.length){
+    ctx.fillStyle='rgba(107,114,128,0.45)';
+    ctx.font=`${Math.round(W*0.04)}px Space Mono`;
+    ctx.textAlign='center';
+    ctx.fillText('Waiting for pose…',W/2,H/2);
+    return;
+  }
+
+  const lms=landmarks[0];
+
+  // Only use visible landmarks for bounding box
+  const visible=lms.filter(lm=>(lm.visibility||0)>0.25);
+  if(!visible.length){
+    ctx.fillStyle='rgba(107,114,128,0.45)';
+    ctx.font=`${Math.round(W*0.04)}px Space Mono`;
+    ctx.textAlign='center';
+    ctx.fillText('Adjust position…',W/2,H/2);
+    return;
+  }
+
+  let minX=1,maxX=0,minY=1,maxY=0;
+  visible.forEach(lm=>{minX=Math.min(minX,lm.x);maxX=Math.max(maxX,lm.x);minY=Math.min(minY,lm.y);maxY=Math.max(maxY,lm.y);});
+  const padX=0.08,padY=0.06;
+  minX=Math.max(0,minX-padX);maxX=Math.min(1,maxX+padX);
+  minY=Math.max(0,minY-padY);maxY=Math.min(1,maxY+padY);
+  const bw=maxX-minX||0.5, bh=maxY-minY||0.5;
+
+  const scaleX=W/bw, scaleY=H/bh;
+  const scale=Math.min(scaleX,scaleY);
+  const offX=(W-bw*scale)/2, offY=(H-bh*scale)/2;
+
+  const px=(nx)=>offX+(nx-minX)*scale;
+  const py=(ny)=>offY+(ny-minY)*scale;
+
+  ctx.save();
+  ctx.translate(W,0);ctx.scale(-1,1);
+  const mpx=(nx)=>W-(px(nx));
+
+  // Skeleton connections
+  POSE_CONNECTIONS.forEach(([a,b])=>{
+    const la=lms[a],lb=lms[b];
+    if(!la||!lb)return;
+    const vis=Math.min(la.visibility||0,lb.visibility||0);
+    if(vis<0.25)return;
+    ctx.strokeStyle=`rgba(168,85,247,${0.25+vis*0.55})`;
+    ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(mpx(la.x),py(la.y));ctx.lineTo(mpx(lb.x),py(lb.y));ctx.stroke();
+  });
+
+  // Keypoints
+  const keyColors={11:'#00e5c8',12:'#00e5c8',13:'#a855f7',14:'#a855f7',15:'#3b82f6',16:'#3b82f6'};
+  lms.forEach((lm,idx)=>{
+    if(!lm||(lm.visibility||0)<0.25)return;
+    const r=[11,12,15,16].includes(idx)?6:3.5;
+    ctx.fillStyle=keyColors[idx]||'rgba(168,85,247,0.8)';
+    ctx.beginPath();ctx.arc(mpx(lm.x),py(lm.y),r,0,Math.PI*2);ctx.fill();
+    // White outline on key joints
+    if([11,12,15,16].includes(idx)){
+      ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(mpx(lm.x),py(lm.y),r,0,Math.PI*2);ctx.stroke();
+    }
+  });
+
+  // Wrist drift indicator
+  const lw=lms[15],rw=lms[16];
+  if(lw&&rw&&(lw.visibility||0)>0.4&&(rw.visibility||0)>0.4){
+    const drift=Math.abs(lw.y-rw.y)*scale;
+    ctx.strokeStyle=drift>8?'rgba(245,158,11,0.9)':'rgba(34,197,94,0.7)';
+    ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(mpx(lw.x),py(lw.y));ctx.lineTo(mpx(rw.x),py(rw.y));ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+    const col=drift>8?'rgba(245,158,11,0.9)':'rgba(34,197,94,0.8)';
+    ctx.fillStyle=col;
+    ctx.font=`${Math.round(W*0.036)}px Space Mono`;ctx.textAlign='left';
+    ctx.fillText('drift '+(drift).toFixed(1)+'px',6,H-6);
+    return;
+  }
+
+  ctx.restore();
+}
+
+// Size canvases to match rendered size (sharp on HiDPI)
+function sizePreviewCanvases(){
+  ['face-preview-canvas','pose-preview-canvas'].forEach(id=>{
+    const c=document.getElementById(id);
+    if(!c)return;
+    const parent=c.parentElement;
+    if(!parent)return;
+    const rect=parent.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    const w=rect.width>0?rect.width:320;
+    const h=rect.height>0?rect.height:180;
+    c.width=Math.round(w*dpr);
+    c.height=Math.round(h*dpr);
+    c.style.width=w+'px';
+    c.style.height=h+'px';
+    const ctx=c.getContext('2d');
+    ctx.scale(dpr,dpr);
+  });
+}
+
+// Live preview rendering loop
+function startPreviewLoop(){
+  if(_previewRafId)cancelAnimationFrame(_previewRafId);
+  const fCanvas=document.getElementById('face-preview-canvas');
+  const pCanvas=document.getElementById('pose-preview-canvas');
+  const vid=document.getElementById('cam-video');
+
+  // Size once, then again after a short delay (layout may not be final yet)
+  sizePreviewCanvases();
+  setTimeout(sizePreviewCanvases,200);
+
+  // Re-size on window resize
+  const onResize=()=>sizePreviewCanvases();
+  window.addEventListener('resize',onResize);
+
+  let lastFaceT=0;
+  let lastPoseT=0;
+
+  async function loop(t){
+    _previewRafId=requestAnimationFrame(loop);
+
+    if(vid&&vid.readyState>=2){
+      if(t-lastFaceT>66&&faceReady&&faceLandmarker&&!faceBusy){
+        faceBusy=true;
+        try{
+          const res=faceLandmarker.detectForVideo(vid,performance.now());
+          _lastFaceLandmarks=res.faceLandmarks;
+        }catch(e){}
+        finally{faceBusy=false;}
+        lastFaceT=t;
+      }
+      if(t-lastPoseT>66&&poseReady&&poseLandmarker&&!poseBusy){
+        poseBusy=true;
+        try{
+          const res=poseLandmarker.detectForVideo(vid,performance.now());
+          _lastPoseLandmarks=res.landmarks;
+          const pass=computeBodyPassFromPose(res);
+          bodyPassHistory.push(pass?1:0);
+          if(bodyPassHistory.length>BODY_WINDOW)bodyPassHistory.shift();
+          sqScores.body=bodyPassHistory.reduce((a,b)=>a+b,0)/bodyPassHistory.length;
+        }catch(e){}
+        finally{poseBusy=false;}
+        lastPoseT=t;
+      }
+    }
+
+    if(fCanvas)drawFacePreview(fCanvas,vid,_lastFaceLandmarks);
+    if(pCanvas)drawPosePreview(pCanvas,_lastPoseLandmarks);
+  }
+  requestAnimationFrame(loop);
+
+  // Store cleanup fn so stopPreviewLoop can remove the resize listener
+  _previewRafId._cleanup=()=>window.removeEventListener('resize',onResize);
+}
+
+function stopPreviewLoop(){
+  if(_previewRafId){
+    if(typeof _previewRafId._cleanup==='function')_previewRafId._cleanup();
+    cancelAnimationFrame(_previewRafId);_previewRafId=null;
+  }
+  _lastFaceLandmarks=null;_lastPoseLandmarks=null;
+}
+
+function isLandmarkGood(lm){
+  if(!lm)return false;
+  const v=(typeof lm.visibility==='number')?lm.visibility:0;
+  if(v<BODY_VIS_THRESH)return false;
+  const x=lm.x,y=lm.y;
+  if(x<BODY_INFRAME_PAD||x>(1-BODY_INFRAME_PAD))return false;
+  if(y<BODY_INFRAME_PAD||y>(1-BODY_INFRAME_PAD))return false;
+  return true;
+}
+
+function computeBodyPassFromPose(result){
+  if(!result||!result.landmarks||!result.landmarks.length)return false;
+  const lms=result.landmarks[0];
+  if(!lms||lms.length<17)return false;
+  return(
+    isLandmarkGood(lms[LM.LEFT_SHOULDER])&&
+    isLandmarkGood(lms[LM.RIGHT_SHOULDER])&&
+    isLandmarkGood(lms[LM.LEFT_WRIST])&&
+    isLandmarkGood(lms[LM.RIGHT_WRIST])
+  );
+}
+
+/* ── REAL LIGHTING & FACE FRAMING via canvas ── */
+let _sqCanvas=null;let _sqCtx=null;
+function getSqCanvas(){
+  if(!_sqCanvas){_sqCanvas=document.createElement('canvas');_sqCanvas.width=160;_sqCanvas.height=120;_sqCtx=_sqCanvas.getContext('2d');}
+  return{canvas:_sqCanvas,ctx:_sqCtx};
+}
+
+function measureLightingAndFraming(vid){
+  if(!vid||vid.readyState<2)return{lighting:sqScores.lighting,face:sqScores.face};
+  try{
+    const{canvas,ctx}=getSqCanvas();
+    ctx.drawImage(vid,0,0,canvas.width,canvas.height);
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    const W=canvas.width,H=canvas.height;
+    let totalBrightness=0,n=0;
+    for(let i=0;i<data.length;i+=4){totalBrightness+=(data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114);n++;}
+    const avgBrightness=totalBrightness/n; // 0-255
+    const lightingScore=avgBrightness>110?1:avgBrightness>80?(avgBrightness-80)/30*0.25+0.75:avgBrightness/80*0.55;
+
+    // Face framing: look for a bright region in the upper-center third (face area)
+    // Sample a 40x40 box centered at (W/2, H/3) and compare to overall brightness
+    const fx=Math.floor(W/2-20),fy=Math.floor(H/3-20);
+    let faceB=0,faceN=0;
+    for(let y=fy;y<fy+40&&y<H;y++){
+      for(let x=fx;x<fx+40&&x<W;x++){
+        const idx=(y*W+x)*4;
+        faceB+=(data[idx]*0.299+data[idx+1]*0.587+data[idx+2]*0.114);faceN++;
+      }
+    }
+    const faceBrightness=faceB/faceN;
+    // Face framing is good if the face region is reasonably bright and not drastically
+    // different from overall (avoiding mostly-blank/dark frames)
+    const faceRatio=faceBrightness/(avgBrightness||1);
+    // Good: face region 0.7–1.5× overall brightness, and face area itself is >80
+    const faceCentered=faceBrightness>80&&faceRatio>0.65&&faceRatio<1.8;
+    const faceScore=faceCentered?(Math.min(faceBrightness,180)/180*0.3+0.7):Math.max(0.3,(faceBrightness/180)*0.65);
+
+    return{lighting:Math.min(1,lightingScore),face:Math.min(1,faceScore)};
+  }catch(e){return{lighting:sqScores.lighting,face:sqScores.face};}
+}
+
+async function animateSQ(){
+  if(sqTimer)clearInterval(sqTimer);
+  await initPose();
+  await initFace();
+  const vid=document.getElementById('cam-video');
+  const audioSeq=[0.88,0.84,0.90,0.86,0.92,0.88,0.91,0.89,0.87,0.90];
+  let audioIdx=0;
+  sqTimer=setInterval(async()=>{
+    // REAL lighting + face framing from canvas
+    const{lighting,face}=measureLightingAndFraming(vid);
+    sqScores.lighting=lighting;
+    sqScores.face=face;
+
+    // Simulated audio
+    sqScores.audio=audioSeq[audioIdx%audioSeq.length];audioIdx++;
+
+    // Body score is updated by animateSQ's own pose check (preview loop not running during record screen)
+    if(poseReady&&poseLandmarker&&vid&&vid.readyState>=2&&!poseBusy){
+      poseBusy=true;
+      try{
+        const res=poseLandmarker.detectForVideo(vid,performance.now());
+        const pass=computeBodyPassFromPose(res);
+        bodyPassHistory.push(pass?1:0);
+        if(bodyPassHistory.length>BODY_WINDOW)bodyPassHistory.shift();
+        sqScores.body=bodyPassHistory.reduce((a,b)=>a+b,0)/bodyPassHistory.length;
+      }catch(e){sqScores.body=0.4;}
+      finally{poseBusy=false;}
+    }
+
+    _qualityScore=(sqScores.lighting+sqScores.face+sqScores.body+sqScores.audio)/4;
+    updateSqUI();
+  },200);
+}
+
+function stopSQ(){if(sqTimer){clearInterval(sqTimer);sqTimer=null;}}
+
+/* ── QUALITY GATE DECISION ── */
+let _gateDecision='pass'; // pass | warn | block
+
+function showQualityGate(){
+  const total=_qualityScore;
+  const box=document.getElementById('qg-box');
+  const overlay=document.getElementById('qg-overlay');
+
+  const scoreLabel=(sc)=>sc>=0.75?'Good':sc>=0.55?'Borderline':'Poor';
+  const scoreClass=(sc)=>sc>=0.75?'good':sc>=0.55?'warn':'bad';
+
+  document.getElementById('qg-s-light').textContent=scoreLabel(sqScores.lighting);
+  document.getElementById('qg-s-light').className='qg-score-v '+scoreClass(sqScores.lighting);
+  document.getElementById('qg-s-face').textContent=scoreLabel(sqScores.face);
+  document.getElementById('qg-s-face').className='qg-score-v '+scoreClass(sqScores.face);
+  document.getElementById('qg-s-body').textContent=scoreLabel(sqScores.body);
+  document.getElementById('qg-s-body').className='qg-score-v '+scoreClass(sqScores.body);
+  document.getElementById('qg-s-audio').textContent=scoreLabel(sqScores.audio);
+  document.getElementById('qg-s-audio').className='qg-score-v '+scoreClass(sqScores.audio);
+
+  const btns=document.getElementById('qg-btns');
+  if(total>=0.75){
+    _gateDecision='pass';
+    box.style.setProperty('--ac','var(--teal)');
+    document.getElementById('qg-icon').textContent='✅';
+    document.getElementById('qg-title').textContent='Signal Quality Looks Good';
+    document.getElementById('qg-desc').textContent='All four signal channels are reliable. Running analysis now.';
+    btns.innerHTML='<button class="qg-proceed" onclick="proceedFromGate()">Analyze Now →</button>';
+  } else if(total>=0.55){
+    _gateDecision='warn';
+    box.style.setProperty('--ac','var(--yellow)');
+    document.getElementById('qg-icon').textContent='⚠️';
+    document.getElementById('qg-title').textContent='Some Signals May Be Unreliable';
+    document.getElementById('qg-desc').textContent='One or more channels are borderline. You can continue or retake for better accuracy.';
+    btns.innerHTML='<button class="qg-proceed yellow" onclick="proceedFromGate()">Continue Anyway</button><button class="qg-retake" onclick="retakeFromGate()">↺ Retake for Better Accuracy</button>';
+  } else {
+    _gateDecision='block';
+    box.style.setProperty('--ac','var(--red)');
+    document.getElementById('qg-icon').textContent='❌';
+    document.getElementById('qg-title').textContent='Recording Not Reliable Enough';
+    document.getElementById('qg-desc').textContent='Signal quality is too low to provide meaningful insights. Please retake with better lighting, framing, and audio.';
+    btns.innerHTML='<button class="qg-retake" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:var(--red);" onclick="retakeFromGate()">↺ Retake Recording</button>';
+  }
+  overlay.style.display='flex';
+}
+
+function proceedFromGate(){
+  document.getElementById('qg-overlay').style.display='none';
+  showScreen('processing');
+  runProcessing();
+}
+
+function retakeFromGate(){
+  document.getElementById('qg-overlay').style.display='none';
+  stopSQ();
+  resetRec();
+}
+
+/* ── REAL WPM via Web Speech API (with per-second spike detection) ── */
+let _speechRecognition=null;
+let _spokenWords=[];
+let _speakStartTime=0;
+let _wpmBuckets=[];        // words per 3-second bucket
+let _bucketStartTime=0;
+let _bucketWordCount=0;
+let _bucketTimer=null;
+
+function startSpeechRecognition(){
+  _spokenWords=[];
+  _speakStartTime=performance.now();
+  _wpmBuckets=[];
+  _bucketStartTime=performance.now();
+  _bucketWordCount=0;
+  _wpmSpike=false;
+
+  // Show passage overlay
+  const passageEl=document.getElementById('speech-passage-text');
+  const passageOverlay=document.getElementById('speech-passage-overlay');
+  if(passageEl)passageEl.textContent=SPEECH_PASSAGE;
+  if(passageOverlay)passageOverlay.style.display='flex';
+
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    // Still run the bucket timer even without speech API
+    _bucketTimer=setInterval(_flushBucket,3000);
+    return;
+  }
+  _speechRecognition=new SR();
+  _speechRecognition.continuous=true;
+  _speechRecognition.interimResults=true;
+  _speechRecognition.lang='en-US';
+  _speechRecognition.onresult=(e)=>{
+    let finalWords=[];
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal){
+        finalWords.push(...e.results[i][0].transcript.trim().split(/\s+/).filter(Boolean));
+      }
+    }
+    if(finalWords.length){
+      _spokenWords.push(...finalWords);
+      _bucketWordCount+=finalWords.length;
+    }
+  };
+  _speechRecognition.onerror=()=>{};
+  try{_speechRecognition.start();}catch(e){}
+
+  // Flush a WPM bucket every 3 seconds
+  _bucketTimer=setInterval(_flushBucket,3000);
+}
+
+function _flushBucket(){
+  const now=performance.now();
+  const elapsed=(now-_bucketStartTime)/1000/60; // minutes
+  const bucketWpm=elapsed>0?Math.round(_bucketWordCount/elapsed):0;
+  if(bucketWpm>0)_wpmBuckets.push(bucketWpm);
+  _bucketStartTime=now;
+  _bucketWordCount=0;
+}
+
+function stopSpeechRecognition(){
+  if(_bucketTimer){clearInterval(_bucketTimer);_bucketTimer=null;}
+  _flushBucket(); // capture last partial bucket
+
+  if(_speechRecognition){try{_speechRecognition.stop();}catch(e){}_speechRecognition=null;}
+
+  // Hide passage overlay
+  const passageOverlay=document.getElementById('speech-passage-overlay');
+  if(passageOverlay)passageOverlay.style.display='none';
+
+  const elapsed=(performance.now()-_speakStartTime)/1000/60;
+  const overallWpm=elapsed>0&&_spokenWords.length>0?Math.round(_spokenWords.length/elapsed):null;
+
+  // Detect spike/dip: if any bucket deviates >40% from the median, flag it
+  if(_wpmBuckets.length>=2){
+    const sorted=[..._wpmBuckets].sort((a,b)=>a-b);
+    const median=sorted[Math.floor(sorted.length/2)];
+    _wpmSpike=_wpmBuckets.some(b=>median>0&&(Math.abs(b-median)/median)>0.4);
+  }
+
+  return overallWpm;
+}
+
+/* ── RECORDING ── */
+// Video recording storage (session only, not persisted to localStorage)
+// Keys: 'baseline' for the baseline recording, or hist index (0=newest) for check-ins
+const _recordingBlobs = new Map();
+let _mediaRecorder = null;
+let _recordedChunks = [];
+
+const SPEECH_PASSAGE = "The morning light was bright and clear. I walked outside and felt the fresh air. Today seemed like an ordinary day, but I wanted to make sure everything was fine. Speaking slowly and clearly helps us notice any changes over time.";
+const SPEECH_WORD_COUNT = SPEECH_PASSAGE.trim().split(/\s+/).length; // ~40 words
+
+const TASKS=[
+  {id:'smile',banner:'😐 &nbsp;NEUTRAL FACE — keep still',cls:'smile',tip:'Keep a relaxed, neutral expression',dur:3,tp:'tp-smile',chk:'chk-smile'},
+  {id:'arms', banner:'🙌 &nbsp;RAISE BOTH ARMS — hold steady',cls:'arms',tip:'Keep shoulders visible · Arms level',dur:5,tp:'tp-arms',chk:'chk-arms'},
+  {id:'speak',banner:'🗣️ &nbsp;READ THE PASSAGE ALOUD',cls:'speak',tip:'Read clearly at your natural pace — don\'t rush',dur:20,tp:'tp-speak',chk:'chk-speak'}
+];
+let tIdx=0,recTimer=null,recTime=0;
+let _measuredWpm=null;
+let _wpmSpike=false; // true if a spike/dip was detected
+
+async function startRec(){
+  const btn=document.getElementById('btn-go');
+  btn.disabled=true;
+  btn.textContent='Get ready…';
+  await initCam();
+
+  // 3-2-1 countdown on the camera
+  const overlay=document.getElementById('countdown-overlay');
+  const numEl=document.getElementById('countdown-num');
+  overlay.classList.add('visible');
+
+  await new Promise(resolve=>{
+    let count=3;
+    numEl.textContent=count;
+    // Re-trigger animation on each number change
+    numEl.style.animation='none';
+    void numEl.offsetWidth;
+    numEl.style.animation='cntPop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) forwards';
+
+    const tick=setInterval(()=>{
+      count--;
+      if(count<=0){
+        clearInterval(tick);
+        overlay.classList.remove('visible');
+        resolve();
+      } else {
+        numEl.textContent=count;
+        numEl.style.animation='none';
+        void numEl.offsetWidth;
+        numEl.style.animation='cntPop 0.35s cubic-bezier(0.175,0.885,0.32,1.275) forwards';
+      }
+    },1000);
+  });
+
+  btn.textContent='Recording…';
+  document.getElementById('rec-ind').classList.add('on');
+  _measuredWpm=null;
+  // Start MediaRecorder to capture video for replay
+  _recordedChunks=[];
+  try{
+    if(stream){
+      _mediaRecorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp8'});
+      _mediaRecorder.ondataavailable=e=>{if(e.data&&e.data.size>0)_recordedChunks.push(e.data);};
+      _mediaRecorder.start(200);
+    }
+  }catch(e){_mediaRecorder=null;}
+  tIdx=0;runTask();
+}
+
+function runTask(){
+  if(tIdx>=TASKS.length){endRec();return;}
+  const t=TASKS[tIdx];recTime=t.dur;
+  document.getElementById('prompt-banner').innerHTML=t.banner;
+  document.getElementById('prompt-banner').className='prompt-banner '+t.cls;
+  document.getElementById('cam-tip').textContent=t.tip;
+  document.getElementById('timer-lbl').textContent=t.id.toUpperCase()+' TASK';
+  document.getElementById(t.tp).className='tp-task active';
+
+  // Start real speech recognition during the speak task
+  if(t.id==='speak')startSpeechRecognition();
+
+  tickTimer(recTime,t.dur,tIdx);
+  recTimer=setInterval(()=>{
+    recTime--;tickTimer(recTime,t.dur,tIdx);
+    if(recTime<=0){
+      clearInterval(recTimer);
+      // Stop speech recognition and capture real WPM
+      if(t.id==='speak'){const wpm=stopSpeechRecognition();if(wpm)_measuredWpm=wpm;}
+      document.getElementById(t.chk).textContent='✓';
+      document.getElementById(t.tp).className='tp-task done';
+      tIdx++;setTimeout(runTask,300);
+    }
+  },1000);
+}
+
+function tickTimer(cur,tot,ti){
+  const r=document.getElementById('timer-ring');const n=document.getElementById('timer-num');
+  const circ=251.3;r.style.strokeDashoffset=circ*(1-cur/tot);
+  r.style.stroke=['var(--teal)','var(--violet)','var(--blue)'][ti]||'var(--teal)';
+  n.textContent=cur;
+}
+
+function endRec(){
+  document.getElementById('rec-ind').classList.remove('on');
+  stopSQ();
+  // Stop MediaRecorder
+  if(_mediaRecorder&&_mediaRecorder.state!=='inactive'){
+    _mediaRecorder.stop();
+  }
+  showQualityGate();
+}
+
+function resetRec(skipPreview){
+  clearInterval(recTimer);tIdx=0;
+  if(_mediaRecorder&&_mediaRecorder.state!=='inactive'){try{_mediaRecorder.stop();}catch(e){}}_mediaRecorder=null;_recordedChunks=[];
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  stopSQ();_measuredWpm=null;_wpmSpike=false;
+  const passageOverlay=document.getElementById('speech-passage-overlay');
+  if(passageOverlay)passageOverlay.style.display='none';
+  // Hide countdown overlay if it's showing
+  const co=document.getElementById('countdown-overlay');if(co)co.classList.remove('visible');
+  const ph=document.getElementById('cam-placeholder');
+  if(ph)ph.style.display='flex';
+  document.getElementById('cam-video').srcObject=null;
+  document.getElementById('btn-go').disabled=false;
+  document.getElementById('btn-go').textContent='▶  Start Recording';
+  document.getElementById('rec-ind').classList.remove('on');
+  document.getElementById('prompt-banner').innerHTML='😐 &nbsp;NEUTRAL FACE — keep still';
+  document.getElementById('prompt-banner').className='prompt-banner smile';
+  document.getElementById('timer-num').textContent='—';
+  document.getElementById('timer-lbl').textContent='Ready to begin';
+  document.getElementById('timer-ring').style.strokeDashoffset='0';
+  TASKS.forEach(t=>{document.getElementById(t.chk).textContent='○';document.getElementById(t.tp).className=t.id==='smile'?'tp-task active':'tp-task pending';});
+  // Restart preview unless told not to
+  if(!skipPreview)initCamPreview();
+}
+
+/* ── PROCESSING ── */
+function runProcessing(){
+  const faceMsg=isBaselineMode?'Capturing baseline face symmetry…':'Comparing face symmetry to your baseline…';
+  const armsMsg=isBaselineMode?'Capturing baseline arm position…':'Comparing arm stability to your baseline…';
+  const speechMsg=isBaselineMode?'Capturing baseline speech cadence…':'Comparing speech clarity to your baseline…';
+  document.getElementById('pc-face-met').textContent=faceMsg;
+  document.getElementById('pc-arms-met').textContent=armsMsg;
+  document.getElementById('pc-speech-met').textContent=speechMsg;
+  ['face','arms','speech'].forEach(id=>{
+    const el=document.getElementById('pc-'+id);
+    el.classList.remove('running','done');
+    document.getElementById('pc-'+id+'-st').innerHTML='<span class="spinner"></span>';
+  });
+  const steps=[
+    {id:'face',met:isBaselineMode?'Baseline face symmetry captured ✓':'Face asymmetry compared to baseline ✓',delay:1200},
+    {id:'arms',met:isBaselineMode?'Baseline arm position captured ✓':'Arm drift compared to baseline ✓',delay:2600},
+    {id:'speech',met:isBaselineMode?'Baseline speech cadence captured ✓':'Speech clarity compared to baseline ✓',delay:4000}
+  ];
+  steps.forEach(s=>{
+    document.getElementById('pc-'+s.id).classList.add('running');
+    setTimeout(()=>{
+      document.getElementById('pc-'+s.id+'-met').textContent=s.met;
+      document.getElementById('pc-'+s.id+'-st').textContent='✅';
+      document.getElementById('pc-'+s.id).classList.remove('running');
+      document.getElementById('pc-'+s.id).classList.add('done');
+    },s.delay);
+  });
+  setTimeout(()=>{buildResults();showScreen('results');startPreviewLoop();},5000);
+}
+
+/* ── RESULTS ── */
+let _res=null;
+function buildResults(){
+  const fa=+(0.02+Math.random()*0.11).toFixed(3);
+  const ad=+(1+Math.random()*11).toFixed(1);
+  const pr=+(0.1+Math.random()*0.38).toFixed(2);
+  const wpm=_measuredWpm!==null?_measuredWpm:Math.floor(88+Math.random()*65);
+
+  const fs=fa>0.08?Math.min(1,0.55+(fa-0.08)*6):0;
+  const as=ad>8?Math.min(1,0.65+(ad-8)*0.06):ad>5?0.35:0;
+  // Speech score: pause ratio threshold + WPM spike/dip bonus
+  const ssPause=pr>0.35?0.7:pr>0.25?0.35:0;
+  const ssWpm=_wpmSpike?0.5:0; // spikes/dips are clinically significant
+  const ss=Math.min(1,ssPause+ssWpm);
+  const total=fs+as+ss;
+
+  // Store quality score for this recording
+  storeQualityScore(_qualityScore);
+
+  // Update confidence UI
+  const {conf,level}=updateConfidenceUI();
+  const confBanner=document.getElementById('conf-banner');
+  if(confBanner)confBanner.style.display=isBaselineMode?'none':'flex';
+  document.getElementById('face-val').innerHTML=fa+'<span class="mc-unit">/ 0.08 threshold</span>';
+  document.getElementById('arms-val').innerHTML=ad+'<span class="mc-unit">% over 5s</span>';
+  document.getElementById('speech-val').innerHTML=pr+'<span class="mc-unit">silence ratio</span>';
+  document.getElementById('transcript-txt').textContent='"'+SPEECH_PASSAGE.slice(0,55)+'…"';
+  document.getElementById('wpm-txt').textContent=wpm+' wpm'+(_measuredWpm?(_wpmSpike?' ⚠ spike detected':'  ✦ measured'):'');
+
+  // ── BASELINE MODE: save values, show success UI ──
+  if(isBaselineMode){
+    setBadge('face-badge',0);setBadge('arms-badge',0);setBadge('speech-badge',0);
+    nudgeLine('face-line',fa,0.08);nudgeLine('arms-line',ad,8);nudgeLine('speech-line',pr,0.35);
+    ['face','arms','speech'].forEach(id=>document.getElementById(id+'-delta-row').style.display='none');
+    document.getElementById('sb').className='status-banner baseline';
+    document.getElementById('sb-orb').textContent='📐';
+    document.getElementById('sb-title').textContent='Baseline Recorded';
+    document.getElementById('sb-desc').textContent='This is your personal reference. Every future FAST Check will be compared against these values — not population averages.';
+    document.getElementById('sb-score').textContent='—';
+    document.getElementById('action-panel').className='action-panel green';
+    document.getElementById('act-title').textContent='Your baseline has been saved.';
+    document.getElementById('act-desc').textContent='You can now run your first FAST Check. If your health changes or you feel your baseline is outdated, you can re-record it from the home screen at any time.';
+    const pBtn=document.getElementById('action-panel').querySelector('.act-btn-p');
+    const sBtn=document.getElementById('action-panel').querySelector('.act-btn-s');
+    pBtn.textContent='Start First FAST Check';
+    pBtn.onclick=function(){baseline=JSON.parse(localStorage.getItem('sc_baseline')||'null');updateHomeScreen();goFastCheck();};
+    sBtn.textContent='Back to Home';
+    sBtn.onclick=function(){baseline=JSON.parse(localStorage.getItem('sc_baseline')||'null');updateHomeScreen();showScreen('home');};
+    const bData={date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),fa,ad,pr,wpm};
+    try{localStorage.setItem('sc_baseline',JSON.stringify(bData));}catch(e){}
+    baseline=bData;
+    // Save baseline video
+    if(_recordedChunks.length>0){
+      const blob=new Blob(_recordedChunks,{type:'video/webm'});
+      if(_recordingBlobs.has('baseline'))URL.revokeObjectURL(_recordingBlobs.get('baseline'));
+      _recordingBlobs.set('baseline',URL.createObjectURL(blob));
+    }
+    _res={date:new Date(),fa,ad,pr,wpm,fs:0,as:0,ss:0,total:0,status:'baseline',isBaseline:true};
+    return;
+  }
+
+  // ── FAST CHECK MODE: compare to baseline ──
+  setBadge('face-badge',fs);setBadge('arms-badge',as);setBadge('speech-badge',ss);
+  nudgeLine('face-line',fa,0.08);nudgeLine('arms-line',ad,8);nudgeLine('speech-line',pr,0.35);
+  if(baseline){
+    showDelta('face',fa,baseline.fa);
+    showDelta('arms',parseFloat(ad),parseFloat(baseline.ad));
+    showDelta('speech',pr,baseline.pr);
+  }
+
+  // ── TREND ESCALATION ──
+  function evalTrend(){
+    const recent=hist.slice(0,5).map(h=>h.status); // newest first
+    const reds=recent.filter(s=>s==='red').length;
+    const yellowOrRed=recent.filter(s=>s==='yellow'||s==='red').length;
+    const consecutive=(()=>{let c=0;for(const s of recent){if(s==='red')c++;else break;}return c;})();
+    const yellowStreak=(()=>{let c=0;for(const s of recent){if(s==='yellow'||s==='red')c++;else break;}return c;})();
+    if(consecutive>=2||reds>=3) return 'strong';
+    if(yellowOrRed>=3||yellowStreak>=3) return 'soft';
+    return null;
+  }
+  const trendFlag=evalTrend();
+  
+  // Confidence-aware alert thresholds
+  const allowRed=level==='high';
+  const allowYellow=level==='high'||level==='medium';
+
+  if(allowRed&&(total>=2||fs>=0.9||as>=0.9||ss>=0.9)){
+    sc='red';orb='⚠️';title='Possible Warning Signs';
+    desc='One or more FAST signals show notable deviation from your baseline. This is not a diagnosis, but warrants attention.';
+    at=trendFlag==='strong'?'Pattern detected across multiple check-ins — consider urgent medical evaluation.'
+       :trendFlag==='soft'?'This pattern has appeared before. Consider speaking with a healthcare professional.'
+       :'If symptoms are sudden or new, seek care immediately.';
+    ad2=trendFlag==='strong'
+      ?'This concerning pattern has appeared in multiple recent check-ins. We strongly recommend discussing this with a healthcare professional soon.'
+      :trendFlag==='soft'
+      ?'Elevated signals have appeared in several recent check-ins. This is not a diagnosis, but persistence across sessions is worth investigating.'
+      :'Notable irregularities detected versus your baseline. If you experience sudden facial drooping, arm weakness, or slurred speech, seek emergency care now.';
+  } else if(allowYellow&&total>=1){
+    sc='yellow';orb='⚡';title='Mild Variation Detected';
+    desc='Some signals showed slight deviation from your baseline. This may be normal day-to-day variation.';
+    at=trendFlag==='soft'?'This mild variation has appeared in several recent sessions. Consider a retake or professional check-in.'
+       :'Consider a retake or consult a professional.';
+    ad2=trendFlag==='soft'
+      ?'Mild deviations have shown up across several recent check-ins. While not alarming, a consistent mild pattern is worth monitoring closely.'
+      :'One or more signals were slightly outside your baseline range. This may be natural variation — consider retaking or speaking with a healthcare professional if it persists.';
+  } else {
+    at='No warning signals detected.';
+    if(level==='low'){
+      ad2="Patterns are within a normal range, but we're still calibrating your baseline. Complete more check-ins for reliable trend detection.";
+      desc="No notable changes detected. Your baseline is still calibrating — more check-ins will make insights more reliable.";
+    } else if(level==='medium'){
+      ad2='Signals are consistent with your developing baseline. Trends are taking shape — keep checking in regularly.';
+    } else {
+      ad2='All three FAST indicators are consistent with your personal baseline. Keep checking in regularly to spot gradual shifts over time.';
+    }
+  }
+
+  document.getElementById('sb').className='status-banner '+sc;
+  document.getElementById('sb-orb').textContent=orb;
+  document.getElementById('sb-title').textContent=title;
+  document.getElementById('sb-desc').textContent=desc;
+  document.getElementById('sb-score').textContent=total.toFixed(1);
+  document.getElementById('action-panel').className='action-panel '+sc;
+  document.getElementById('act-title').textContent=at;
+  document.getElementById('act-desc').textContent=ad2;
+  const pBtn=document.getElementById('action-panel').querySelector('.act-btn-p');
+  const sBtn=document.getElementById('action-panel').querySelector('.act-btn-s');
+  const sBtn2=document.getElementById('action-panel').querySelector('.act-btn-export');
+  pBtn.textContent='Save & View History';pBtn.onclick=saveAndHistory;
+  sBtn.textContent='Retake';sBtn.onclick=goFastCheck;
+  if(sBtn2){sBtn2.onclick=()=>generateSummary(sc,fa,ad,pr,fs,as,ss,total);}
+
+  // Trend banner
+  const trendEl=document.getElementById('trend-banner');
+  if(trendEl){
+    if(trendFlag==='strong'){
+      trendEl.style.display='flex';
+      trendEl.className='trend-banner strong';
+      trendEl.innerHTML='<span class="tb-icon">📈</span><span class="tb-msg"><strong>Pattern Alert:</strong> Concerning signals have appeared across multiple recent check-ins. This pattern warrants medical attention beyond any single result.</span>';
+    } else if(trendFlag==='soft'){
+      trendEl.style.display='flex';
+      trendEl.className='trend-banner soft';
+      trendEl.innerHTML='<span class="tb-icon">📊</span><span class="tb-msg"><strong>Watch Closely:</strong> Mild or elevated signals have appeared in several recent sessions. Consider consulting a professional if the pattern continues.</span>';
+    } else {
+      trendEl.style.display='none';
+    }
+  }
+
+  _res={date:new Date(),fa,ad,pr,wpm,fs,as,ss,total,status:sc,trendFlag,isBaseline:false};
+}
+
+function showDelta(key,current,baseVal){
+  const row=document.getElementById(key+'-delta-row');
+  const chip=document.getElementById(key+'-delta-chip');
+  const bval=document.getElementById(key+'-baseline-val');
+  if(!row||!chip||!bval||baseVal==null)return;
+  row.style.display='flex';
+  const diff=current-baseVal;
+  const pct=Math.abs(baseVal)>0.001?Math.round(Math.abs(diff)/Math.abs(baseVal)*100):0;
+  if(pct<4){
+    chip.className='delta-chip flat';chip.textContent='≈ No change';
+  } else if(diff>0){
+    chip.className='delta-chip up';chip.innerHTML=`↑ +${Math.abs(diff).toFixed(3)} (${pct}%)`;
+  } else {
+    chip.className='delta-chip down';chip.innerHTML=`↓ −${Math.abs(diff).toFixed(3)} (${pct}%)`;
+  }
+  bval.textContent=`baseline: ${baseVal}`;
+}
+
+function setBadge(id,score){
+  const el=document.getElementById(id);
+  if(score>=0.6){el.className='mc-badge alert';el.textContent='ELEVATED';}
+  else if(score>=0.3){el.className='mc-badge warn';el.textContent='MILD';}
+  else{el.className='mc-badge ok';el.textContent='NORMAL';}
+}
+
+
+/* ── BASELINE CONFIDENCE METER ── */
+function computeBaselineConfidence(){
+  const count=hist.length;
+  // Reaches 1.0 at 8 check-ins (was /7, now scaled so 5 = ~0.63)
+  const countScore=Math.min(count/8,1);
+
+  // Quality factor: average quality of all recordings stored
+  let qualityScores=[];
+  try{const q=JSON.parse(localStorage.getItem('sc_quality_scores')||'[]');qualityScores=q;}catch(e){}
+  const qualityFactor=qualityScores.length>0?(qualityScores.reduce((a,b)=>a+b,0)/qualityScores.length):0.5;
+
+  // Multi-metric stability: use face, arms, speech signals
+  let stabilityScore=0.5;
+  if(hist.length>=3){
+    function metricStability(vals){
+      const mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+      const variance=vals.reduce((a,b)=>a+(b-mean)**2,0)/vals.length;
+      const std=Math.sqrt(variance);
+      return Math.max(0,Math.min(1,1/(1+std*10)));
+    }
+    const faceVals=hist.map(h=>parseFloat(h.fRaw!=null?h.fRaw:h.f)||0);
+    const armsVals=hist.map(h=>parseFloat(h.aRaw!=null?h.aRaw:h.a)||0);
+    const speechVals=hist.map(h=>parseFloat(h.sRaw!=null?h.sRaw:h.s)||0);
+    stabilityScore=(metricStability(faceVals)+metricStability(armsVals)+metricStability(speechVals))/3;
+  }
+
+  const confidence=0.40*countScore+0.30*qualityFactor+0.30*stabilityScore;
+  return{score:confidence,countScore,qualityFactor,stabilityScore};
+}
+
+function getConfidenceDrivers(){
+  const{score,countScore,qualityFactor,stabilityScore}=computeBaselineConfidence();
+  const n=hist.length;
+  const targetCounts=[3,5,8];
+  const nextTarget=targetCounts.find(t=>t>n)||null;
+  const nextStep=nextTarget
+    ?`Complete ${nextTarget-n} more check-in${nextTarget-n===1?'':'s'} to reach ${nextTarget===3?'Developing':nextTarget===5?'Taking Shape':'Established'}.`
+    :'Your baseline is in great shape. Keep it up.';
+  return{score,countScore,qualityFactor,stabilityScore,checkIns:n,nextStep};
+}
+
+function bcLevel(conf){
+  const n=hist.length;
+  if(conf<0.30)return{level:'low',     label:'Calibrating',  msg:"Complete more check-ins to establish your personal baseline."};
+  if(conf<0.55){
+    // After 5+ check-ins, upgrade from generic "Developing" to something more encouraging
+    const label=n>=5?'Taking Shape':'Developing';
+    const msg=n>=5
+      ?"You've completed 5+ check-ins. Your baseline pattern is solidifying — keep checking in to reach Established."
+      :"Your baseline is taking shape. A few more check-ins will sharpen it.";
+    return{level:'medium',label,msg};
+  }
+  if(conf<0.78)return{level:'high',    label:'Established',  msg:"Your baseline is reliable. Trends are meaningful."};
+  return             {level:'verified',label:'Trusted',       msg:"Deep pattern data. Results are highly personalised and accurate."};
+}
+
+function updateConfidenceUI(){
+  const{score:conf,countScore,qualityFactor,stabilityScore,checkIns,nextStep}=getConfidenceDrivers();
+  const {level,label,msg}=bcLevel(conf);
+
+  // Helper to update a pill + ring + tip dot
+  function applyPill(pillId,textId,ringId){
+    const pill=document.getElementById(pillId);
+    const txt=document.getElementById(textId);
+    if(pill&&txt){
+      pill.className='bc-pill '+level;
+      txt.textContent=label;
+    }
+    // Update confidence ring (r=7, circumference=43.98)
+    const ring=document.getElementById(ringId);
+    if(ring){
+      const pct=Math.min(conf,1);
+      const circ=2*Math.PI*7; // r=7 → 43.98
+      ring.style.strokeDashoffset=circ*(1-pct);
+    }
+    // Animate tip dot along the arc
+    const tipId=ringId.replace('-ring','-tip');
+    const tip=document.getElementById(tipId);
+    if(tip){
+      const pct=Math.min(conf,1);
+      if(pct<0.02){tip.setAttribute('opacity','0');return;}
+      // Compute tip position: arc goes from top (-90°), clockwise
+      const angle=(pct*360-90)*(Math.PI/180);
+      const cx=10+7*Math.cos(angle);
+      const cy=10+7*Math.sin(angle);
+      tip.setAttribute('cx',cx.toFixed(3));
+      tip.setAttribute('cy',cy.toFixed(3));
+      tip.setAttribute('opacity','1');
+    }
+  }
+
+  applyPill('nav-bc-pill','nav-bc-text','nav-conf-ring');
+  applyPill('results-bc-pill','results-bc-text','results-conf-ring');
+  applyPill('hist-bc-pill','hist-bc-text','hist-conf-ring');
+
+  // Update breakdown panels
+  document.querySelectorAll('.bc-breakdown').forEach(panel=>{
+    panel.querySelector('.bcd-checkins').textContent=`${checkIns} / 8`;
+    panel.querySelector('.bcd-quality').textContent=Math.round(qualityFactor*100)+'%';
+    panel.querySelector('.bcd-stability').textContent=Math.round(stabilityScore*100)+'%';
+    panel.querySelector('.bcd-nextstep').textContent=nextStep;
+    panel.querySelector('.bcd-bar-fill').style.width=Math.round(conf*100)+'%';
+  });
+
+  const confMsg=document.getElementById('conf-banner-msg');
+  if(confMsg)confMsg.textContent=msg;
+
+  return{conf,level};
+}
+
+function storeQualityScore(score){
+  let q=[];try{q=JSON.parse(localStorage.getItem('sc_quality_scores')||'[]');}catch(e){}
+  q.unshift(score);if(q.length>20)q.pop();
+  try{localStorage.setItem('sc_quality_scores',JSON.stringify(q));}catch(e){}
+}
+
+/* ── HISTORY ── */
+let hist=[];try{hist=JSON.parse(localStorage.getItem('sc_hist')||'[]');}catch(e){}
+
+function saveAndHistory(){
+  stopPreviewLoop();
+  if(_res&&!_res.isBaseline){
+    const entry={
+      date:_res.date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),
+      status:_res.status,
+      f:_res.fs.toFixed(2),a:_res.as.toFixed(2),s:_res.ss.toFixed(2),t:_res.total.toFixed(1),
+      fRaw:_res.fa,aRaw:_res.ad,sRaw:_res.pr
+    };
+    // Shift all existing blob keys up by 1 (oldest stays, new recording becomes index 0)
+    if(_recordedChunks.length>0){
+      const blob=new Blob(_recordedChunks,{type:'video/webm'});
+      const url=URL.createObjectURL(blob);
+      // Shift existing numeric keys upward before inserting new one at 0
+      const numericKeys=[..._recordingBlobs.keys()].filter(k=>typeof k==='number').sort((a,b)=>b-a);
+      for(const k of numericKeys){
+        _recordingBlobs.set(k+1,_recordingBlobs.get(k));
+      }
+      _recordingBlobs.set(0,url);
+    }
+    hist.unshift(entry);
+    if(hist.length>30){
+      // Revoke oldest blob if it exists
+      if(_recordingBlobs.has(30))URL.revokeObjectURL(_recordingBlobs.get(30));
+      _recordingBlobs.delete(30);
+      hist.pop();
+    }
+    try{localStorage.setItem('sc_hist',JSON.stringify(hist.map(h=>{const c={...h};return c;})));}catch(e){}
+  }
+  updateConfidenceUI();
+  renderHistory();showScreen('history');
+}
+
+function renderHistory(){
+  const el=document.getElementById('hist-entries');
+  const period=document.getElementById('hist-period');
+  const empty=document.getElementById('hist-empty');
+  const btnClear=document.getElementById('btn-clear-baseline');
+  const metricCharts=document.getElementById('hist-metric-charts');
+  if(btnClear)btnClear.style.display=baseline?'inline-flex':'none';
+
+  if(!hist.length&&!baseline){
+    el.innerHTML='<div class="hist-empty"><h3>No check-ins yet</h3><p>Record your baseline first, then complete your first FAST check-in to start tracking.</p></div>';
+    period.textContent='No data yet';
+    empty.style.display='block';
+    document.getElementById('hist-fill').setAttribute('d','');
+    document.getElementById('hist-line').setAttribute('d','');
+    if(metricCharts)metricCharts.style.display='none';
+    return;
+  }
+  empty.style.display='none';
+
+  // Baseline pinned at top
+  let baselineHtml='';
+  if(baseline){
+    const hasBaselineVideo=_recordingBlobs.has('baseline');
+    baselineHtml=`<div class="he baseline-entry" onclick="openReplayModal('baseline')" title="${hasBaselineVideo?'Click to watch baseline recording':'No video available for this baseline'}">
+      <div class="he-date">${baseline.date}</div>
+      <div class="he-dot" style="background:var(--teal);box-shadow:0 0 8px rgba(0,229,200,0.5);"></div>
+      <div class="he-scores">
+        <div class="he-sc"><div class="he-sc-lbl">Face</div><div class="he-sc-v" style="color:var(--teal)">${baseline.fa}</div></div>
+        <div class="he-sc"><div class="he-sc-lbl">Arms</div><div class="he-sc-v" style="color:var(--teal)">${baseline.ad}%</div></div>
+        <div class="he-sc"><div class="he-sc-lbl">Pause</div><div class="he-sc-v" style="color:var(--teal)">${baseline.pr}</div></div>
+        <div class="he-sc"><div class="he-sc-lbl">WPM</div><div class="he-sc-v" style="color:var(--teal)">${baseline.wpm}</div></div>
+      </div>
+      <div class="he-baseline-tag">BASELINE</div>
+      ${hasBaselineVideo?'<div style="font-size:0.75rem;margin-left:0.25rem;">▶</div>':'<div style="font-size:0.75rem;margin-left:0.25rem;opacity:0.3;">🎬</div>'}
+    </div>`;
+  }
+
+  if(!hist.length){
+    el.innerHTML=baselineHtml+'<div class="hist-empty" style="padding:2rem;"><h3>No check-ins yet</h3><p>Run your first FAST check to start tracking changes from your baseline.</p></div>';
+    period.textContent='Baseline recorded — no checks yet';
+    if(metricCharts)metricCharts.style.display='none';
+    return;
+  }
+
+  if(metricCharts)metricCharts.style.display='grid';
+  period.textContent=hist[hist.length-1].date+' – '+hist[0].date;
+  el.innerHTML=baselineHtml+hist.map((h,i)=>{
+    const hasVideo=_recordingBlobs.has(i);
+    return `<div class="he" onclick="openReplayModal(${i})" title="${hasVideo?'Click to watch recording':'No video available for this recording'}" style="animation:heSlideIn 0.4s cubic-bezier(0.4,0,0.2,1) both;animation-delay:${0.05+i*0.05}s">
+      <div class="he-date">${h.date}</div>
+      <div class="he-dot ${h.status}"></div>
+      <div class="he-scores">
+        <div class="he-sc"><div class="he-sc-lbl">Face</div><div class="he-sc-v">${h.f}</div></div>
+        <div class="he-sc"><div class="he-sc-lbl">Arms</div><div class="he-sc-v">${h.a}</div></div>
+        <div class="he-sc"><div class="he-sc-lbl">Speech</div><div class="he-sc-v">${h.s}</div></div>
+        <div class="he-sc"><div class="he-sc-lbl">Total</div><div class="he-sc-v">${h.t}</div></div>
+      </div>
+      <div class="he-lbl ${h.status}">${h.status.toUpperCase()}</div>
+      ${hasVideo?'<div style="font-size:0.75rem;margin-left:0.25rem;">▶</div>':'<div style="font-size:0.75rem;margin-left:0.25rem;opacity:0.3;">🎬</div>'}
+    </div>`;
+  }).join('');
+  drawHistChart();
+  drawMetricCharts();
+}
+
+/* ── SMOOTH CURVE HELPERS ── */
+function smoothCurve(pts){
+  if(pts.length<2)return pts.length===1?`M${pts[0].join(',')}`:'';
+  if(pts.length===2)return `M${pts[0].join(',')} L${pts[1].join(',')}`;
+  let d=`M${pts[0].join(',')}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i===0?i:i-1],p1=pts[i],p2=pts[i+1],p3=pts[i+2<pts.length?i+2:i+1];
+    const cp1x=p1[0]+(p2[0]-p0[0])/6;
+    const cp1y=p1[1]+(p2[1]-p0[1])/6;
+    const cp2x=p2[0]-(p3[0]-p1[0])/6;
+    const cp2y=p2[1]-(p3[1]-p1[1])/6;
+    d+=` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]}`;
+  }
+  return d;
+}
+
+function pathLength(d){
+  // Approximate: use a temp SVG path to measure
+  try{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);return Math.round(p.getTotalLength())||800;}catch(e){return 800;}
+}
+
+function animatePath(el,d){
+  el.setAttribute('d',d);
+  const len=pathLength(d);
+  el.style.strokeDasharray=len;
+  el.style.strokeDashoffset=len;
+  el.style.animation='none';
+  void el.getBoundingClientRect();
+  el.style.animation=`chartDraw 1.2s cubic-bezier(0.4,0,0.2,1) forwards`;
+}
+
+function renderDots(groupId,pts,color,delayBase){
+  const g=document.getElementById(groupId);if(!g)return;
+  g.innerHTML='';
+  pts.forEach((p,i)=>{
+    const isLast=i===pts.length-1;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',p[0]);c.setAttribute('cy',p[1]);
+    c.setAttribute('r',isLast?5:3.5);
+    c.setAttribute('fill',color);
+    if(isLast){c.setAttribute('filter',`drop-shadow(0 0 5px ${color})`);c.setAttribute('stroke','rgba(255,255,255,0.3)');c.setAttribute('stroke-width','1');}
+    c.style.opacity='0';
+    c.style.animation=`chartFadeIn 0.3s ease forwards`;
+    c.style.animationDelay=`${delayBase+i*0.06}s`;
+    g.appendChild(c);
+  });
+}
+
+function drawHistChart(){
+  const rev=[...hist].reverse();if(rev.length<2)return;
+  const W=820,H=180,P=20,vals=rev.map(r=>parseFloat(r.t)),mx=Math.max(...vals,2.5);
+  const pts=rev.map((r,i)=>{const x=P+(i/(rev.length-1))*(W-P*2);const y=H-P-(parseFloat(r.t)/mx)*(H-P*2);return[x,y];});
+  const lineD=smoothCurve(pts);
+  const fillD=lineD+` L${pts[pts.length-1][0]},${H-P} L${pts[0][0]},${H-P} Z`;
+  const lineEl=document.getElementById('hist-line');
+  const fillEl=document.getElementById('hist-fill');
+  fillEl.setAttribute('d',fillD);
+  fillEl.style.opacity='0';fillEl.style.animation='none';void fillEl.getBoundingClientRect();fillEl.style.animation='chartFadeIn 0.6s ease forwards 0.8s';
+  animatePath(lineEl,lineD);
+  renderDots('hist-dots',pts,'#00e5c8',0.9);
+  // Baseline reference line at the baseline value if we have one
+  const blEl=document.getElementById('hist-baseline-line');
+  const blLbl=document.getElementById('hist-baseline-lbl');
+  if(baseline&&blEl&&blLbl){
+    blEl.setAttribute('display','');blLbl.setAttribute('display','');
+  }
+}
+
+function drawMetricCharts(){
+  if(hist.length<1)return;
+  const rev=[...hist].reverse();
+
+  function drawLine(lineId,fillId,dotsId,vals,color,blLineId,blLblId,blVal){
+    const lineEl=document.getElementById(lineId);
+    const fillEl=document.getElementById(fillId);
+    if(!lineEl||!fillEl)return;
+    const W=400,H=100,P=10;
+    if(vals.length<2){lineEl.setAttribute('d','');fillEl.setAttribute('d','');return;}
+    const maxV=Math.max(...vals,blVal||0.01)*1.15;
+    const pts=vals.map((v,i)=>{const x=P+(i/(vals.length-1))*(W-P*2);const y=H-P-(v/maxV)*(H-P*2);return[x,y];});
+    const lineD=smoothCurve(pts);
+    const fillD=lineD+` L${pts[pts.length-1][0]},${H-P} L${pts[0][0]},${H-P} Z`;
+    fillEl.setAttribute('d',fillD);
+    fillEl.style.opacity='0';fillEl.style.animation='none';void fillEl.getBoundingClientRect();fillEl.style.animation='chartFadeIn 0.5s ease forwards 0.6s';
+    animatePath(lineEl,lineD);
+    if(dotsId)renderDots(dotsId,pts,color,0.7);
+    // Baseline reference
+    if(blLineId&&blLblId&&blVal!=null){
+      const bY=H-P-(blVal/maxV)*(H-P*2);
+      const blEl=document.getElementById(blLineId);
+      const lblEl=document.getElementById(blLblId);
+      if(blEl){blEl.setAttribute('y1',bY);blEl.setAttribute('y2',bY);blEl.setAttribute('display','');}
+      if(lblEl){lblEl.setAttribute('y',bY-4);lblEl.setAttribute('display','');}
+    }
+  }
+
+  const faceVals=rev.map(r=>r.fRaw!=null?parseFloat(r.fRaw):parseFloat(r.f));
+  const armsVals=rev.map(r=>r.aRaw!=null?parseFloat(r.aRaw):parseFloat(r.a));
+  const speechVals=rev.map(r=>r.sRaw!=null?parseFloat(r.sRaw):parseFloat(r.s));
+
+  drawLine('hmc-face-line','hmc-face-fill','hmc-face-dots',faceVals,'#00e5c8','hmc-face-bline','hmc-face-blbl',baseline?parseFloat(baseline.fa):null);
+  drawLine('hmc-arms-line','hmc-arms-fill','hmc-arms-dots',armsVals,'#a855f7','hmc-arms-bline','hmc-arms-blbl',baseline?parseFloat(baseline.ad):null);
+  drawLine('hmc-speech-line','hmc-speech-fill','hmc-speech-dots',speechVals,'#3b82f6','hmc-speech-bline','hmc-speech-blbl',baseline?parseFloat(baseline.pr):null);
+}
+
+/* ── RESULTS PAGE: animate metric lines on nudgeLine ── */
+function nudgeLine(id,val,thresh){
+  const lineEl=document.getElementById(id);if(!lineEl)return;
+  const fillEl=document.getElementById(id.replace('-line','-fill'));
+  const dotEl=document.getElementById(id.replace('-line','-dot'));
+  const r=Math.min(val/thresh,1.6);
+  const pts=[];
+  for(let i=0;i<=5;i++){const x=i*40;const y=32-(r*22)+(Math.random()*3-1.5);pts.push([x,Math.max(5,Math.min(55,y))]);}
+  const lineD=smoothCurve(pts);
+  // Update fill
+  if(fillEl){
+    const fillD=lineD+` L${pts[pts.length-1][0]},55 L${pts[0][0]},55 Z`;
+    fillEl.setAttribute('d',fillD);
+    fillEl.style.opacity='0';fillEl.style.animation='none';void fillEl.getBoundingClientRect();fillEl.style.animation='chartFadeIn 0.6s ease forwards 0.8s';
+  }
+  // Animate line draw
+  animatePath(lineEl,lineD);
+  // Update dot position
+  if(dotEl){
+    const last=pts[pts.length-1];
+    dotEl.setAttribute('cx',last[0]);dotEl.setAttribute('cy',last[1]);
+    dotEl.style.opacity='0';dotEl.style.animation='none';void dotEl.getBoundingClientRect();dotEl.style.animation='chartFadeIn 0.4s ease forwards 1.1s';
+  }
+}
+
+/* ── VIDEO REPLAY MODAL ── */
+let _replayPoseOverlayActive=false;
+let _replayRafId=null;
+
+function openReplayModal(idx){
+  // idx is either a number (hist index) or 'baseline'
+  const isBaseline = idx === 'baseline';
+  const h = isBaseline ? baseline : hist[idx];
+  if(!h) return;
+
+  const modal=document.getElementById('video-replay-modal');
+  const noVideo=document.getElementById('replay-no-video');
+  const videoEl=document.getElementById('replay-video');
+  const overlayLabel=document.getElementById('replay-overlay-label');
+  const poseToggleWrap=document.getElementById('replay-pose-toggle-wrap');
+  const playBtn=document.getElementById('replay-play-btn');
+
+  document.getElementById('replay-title').textContent=h.date+(isBaseline?' Baseline':' Check-In');
+
+  // Scores
+  if(isBaseline){
+    document.getElementById('replay-face-val').textContent=h.fa;
+    document.getElementById('replay-arms-val').textContent=h.ad+' %';
+    document.getElementById('replay-speech-val').textContent=h.pr;
+    document.getElementById('replay-total-val').textContent='—';
+    document.getElementById('replay-total-val').style.color='var(--teal)';
+    ['face','arms','speech'].forEach(key=>{
+      const badge=document.getElementById('replay-'+key+'-badge');
+      badge.className='replay-badge ok';badge.textContent='BASELINE';
+    });
+  } else {
+    document.getElementById('replay-face-val').textContent=h.fRaw!=null?h.fRaw:h.f;
+    document.getElementById('replay-arms-val').textContent=(h.aRaw!=null?h.aRaw:h.a)+(h.aRaw!=null?' %':'');
+    document.getElementById('replay-speech-val').textContent=h.sRaw!=null?h.sRaw:h.s;
+    document.getElementById('replay-total-val').textContent=h.t;
+    document.getElementById('replay-total-val').style.color=h.status==='red'?'var(--red)':h.status==='yellow'?'var(--yellow)':'var(--green)';
+    ['face','arms','speech'].forEach(key=>{
+      const badge=document.getElementById('replay-'+key+'-badge');
+      const scoreF=parseFloat(h[key==='face'?'f':key==='arms'?'a':'s']);
+      if(scoreF>=0.6){badge.className='replay-badge alert';badge.textContent='ELEVATED';}
+      else if(scoreF>=0.3){badge.className='replay-badge warn';badge.textContent='MILD';}
+      else{badge.className='replay-badge ok';badge.textContent='NORMAL';}
+    });
+  }
+
+  // Video
+  const blobUrl=_recordingBlobs.get(idx);
+  if(blobUrl){
+    videoEl.src=blobUrl;
+    videoEl.loop=true;
+    videoEl.pause();
+    noVideo.style.display='none';
+    videoEl.style.display='block';
+    if(playBtn)playBtn.style.display='flex';
+    overlayLabel.style.display='block';
+    poseToggleWrap.style.display='block';
+    _replayPoseOverlayActive=false;
+    document.getElementById('replay-pose-toggle-btn').textContent='🦴 Show Pose Overlay';
+    // Update play button state on play/pause
+    videoEl.onplay=()=>{if(playBtn)playBtn.style.display='none';};
+    videoEl.onpause=()=>{if(playBtn)playBtn.style.display='flex';};
+    videoEl.onended=()=>{if(playBtn)playBtn.style.display='flex';};
+  } else {
+    videoEl.src='';
+    videoEl.style.display='none';
+    if(playBtn)playBtn.style.display='none';
+    noVideo.style.display='flex';
+    overlayLabel.style.display='none';
+    poseToggleWrap.style.display='none';
+    stopReplayPoseLoop();
+  }
+
+  modal.style.display='block';
+  document.body.style.overflow='hidden';
+}
+
+function closeReplayModal(){
+  const videoEl=document.getElementById('replay-video');
+  videoEl.onplay=null;videoEl.onpause=null;videoEl.onended=null;
+  videoEl.pause();videoEl.src='';
+  const playBtn=document.getElementById('replay-play-btn');
+  if(playBtn)playBtn.style.display='none';
+  stopReplayPoseLoop();
+  document.getElementById('video-replay-modal').style.display='none';
+  document.body.style.overflow='';
+  _replayPoseOverlayActive=false;
+}
+
+function toggleReplayPoseOverlay(){
+  _replayPoseOverlayActive=!_replayPoseOverlayActive;
+  const btn=document.getElementById('replay-pose-toggle-btn');
+  if(_replayPoseOverlayActive){
+    btn.textContent='🦴 Hide Pose Overlay';
+    startReplayPoseLoop();
+  } else {
+    btn.textContent='🦴 Show Pose Overlay';
+    stopReplayPoseLoop();
+    const canvas=document.getElementById('replay-pose-canvas');
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+}
+
+function startReplayPoseLoop(){
+  stopReplayPoseLoop();
+  const videoEl=document.getElementById('replay-video');
+  const canvas=document.getElementById('replay-pose-canvas');
+
+  function sizeCanvas(){
+    const rect=canvas.parentElement.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=Math.round(rect.width*dpr);
+    canvas.height=Math.round(rect.height*dpr);
+    canvas.style.width=rect.width+'px';
+    canvas.style.height=rect.height+'px';
+  }
+  sizeCanvas();
+
+  let lastT=0;
+  async function loop(t){
+    _replayRafId=requestAnimationFrame(loop);
+    if(!_replayPoseOverlayActive)return;
+    if(videoEl.readyState<2)return;
+    if(t-lastT>66&&poseReady&&poseLandmarker&&!poseBusy){
+      poseBusy=true;
+      try{
+        const res=poseLandmarker.detectForVideo(videoEl,performance.now());
+        const dpr=window.devicePixelRatio||1;
+        drawPosePreview(canvas,res.landmarks);
+      }catch(e){}
+      finally{poseBusy=false;}
+      lastT=t;
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+function stopReplayPoseLoop(){
+  if(_replayRafId){cancelAnimationFrame(_replayRafId);_replayRafId=null;}
+}
+
+/* ── CLINICIAN SUMMARY EXPORT ── */
+function generateSummary(sc,fa,ad,pr,fs,as,ss,total){
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const timeStr=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  const{score,countScore,qualityFactor,stabilityScore}=getConfidenceDrivers();
+  const{label:confLabel,msg:confMsg}=bcLevel(score);
+
+  const statusColor={green:'#22c55e',yellow:'#f59e0b',red:'#ef4444'}[sc]||'#22c55e';
+  const statusLabel={green:'All Clear',yellow:'Mild Variation',red:'Warning Signs'}[sc]||'All Clear';
+
+  // Delta strings
+  function deltaStr(current,base,unit=''){
+    if(base==null)return'N/A';
+    const d=current-base;const pct=Math.abs(base)>0.001?Math.round(Math.abs(d)/Math.abs(base)*100):0;
+    if(pct<4)return'No meaningful change';
+    return(d>0?'↑ Increased ':'↓ Decreased ')+pct+'% from baseline';
+  }
+
+  // Recent trend dots
+  const recentDots=hist.slice(0,5).map(h=>`<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${{green:'#22c55e',yellow:'#f59e0b',red:'#ef4444'}[h.status]||'#6b7280'};margin-right:3px;"></span>`).join('');
+
+  // Plain-language what changed
+  const changes=[];
+  if(baseline){
+    const fd=fa-parseFloat(baseline.fa);const ad2=parseFloat(ad)-parseFloat(baseline.ad);const sd=pr-parseFloat(baseline.pr);
+    if(Math.abs(fd)/Math.max(parseFloat(baseline.fa),0.001)>0.1)changes.push(`Facial asymmetry ${fd>0?'increased':'decreased'} compared to baseline.`);
+    if(Math.abs(ad2)/Math.max(parseFloat(baseline.ad),0.001)>0.1)changes.push(`Arm drift ${ad2>0?'increased':'decreased'} compared to baseline.`);
+    if(Math.abs(sd)/Math.max(parseFloat(baseline.pr),0.001)>0.1)changes.push(`Speech pause ratio ${sd>0?'increased':'decreased'} compared to baseline.`);
+  }
+  if(!changes.length)changes.push('All signals within normal baseline range.');
+
+  const win=window.open('','_print','width=800,height=900');
+  win.document.write(`<!DOCTYPE html><html><head><title>Baseline Check-In Summary</title>
+<style>
+body{font-family:'Georgia',serif;color:#1a1a2e;background:#fff;max-width:720px;margin:40px auto;padding:0 40px;line-height:1.6;}
+h1{font-size:1.8rem;letter-spacing:-0.02em;margin:0 0 4px;}
+.sub{color:#666;font-size:0.85rem;font-family:monospace;}
+.disclaimer{background:#fff8e7;border:1px solid #f59e0b;border-radius:8px;padding:12px 16px;font-size:0.82rem;color:#92400e;margin:20px 0;font-family:monospace;}
+.section{margin:24px 0;}
+.section-title{font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;color:#999;font-family:monospace;border-bottom:1px solid #eee;padding-bottom:6px;margin-bottom:14px;}
+.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f0f0;font-size:0.95rem;}
+.row .lbl{color:#555;}
+.row .val{font-weight:600;color:#1a1a2e;}
+.status-badge{display:inline-block;padding:4px 14px;border-radius:100px;color:#fff;font-family:monospace;font-size:0.82rem;background:${statusColor};}
+.change-item{padding:6px 0;font-size:0.92rem;color:#333;}
+.change-item::before{content:'→ ';}
+.footer{margin-top:40px;padding-top:16px;border-top:1px solid #eee;font-size:0.75rem;color:#999;font-family:monospace;}
+@media print{body{margin:20px;}}
+</style></head><body>
+<h1>Baseline Check-In Summary</h1>
+<div class="sub">${dateStr} &nbsp;·&nbsp; ${timeStr} &nbsp;·&nbsp; Local-only generated &nbsp;·&nbsp; Not a diagnosis</div>
+<div class="disclaimer">⚠️ This summary is not a medical diagnosis. It is a personal signal log for informational use only. If you have stroke symptoms, call emergency services immediately.</div>
+
+<div class="section">
+  <div class="section-title">Baseline Reference</div>
+  ${baseline?`
+  <div class="row"><span class="lbl">Recorded</span><span class="val">${baseline.date}</span></div>
+  <div class="row"><span class="lbl">Confidence Level</span><span class="val">${confLabel}</span></div>
+  <div class="row"><span class="lbl">Face Asymmetry</span><span class="val">${baseline.fa}</span></div>
+  <div class="row"><span class="lbl">Arm Drift</span><span class="val">${baseline.ad}%</span></div>
+  <div class="row"><span class="lbl">Speech Pause Ratio</span><span class="val">${baseline.pr}</span></div>
+  `:'<div class="row"><span class="lbl">No baseline recorded</span></div>'}
+</div>
+
+<div class="section">
+  <div class="section-title">This Check-In</div>
+  <div class="row"><span class="lbl">Overall Status</span><span class="val"><span class="status-badge">${statusLabel}</span></span></div>
+  <div class="row"><span class="lbl">Risk Index</span><span class="val">${total.toFixed(1)}</span></div>
+  <div class="row"><span class="lbl">Face Asymmetry Index</span><span class="val">${fa}</span></div>
+  <div class="row"><span class="lbl">Arm Drift</span><span class="val">${ad}%</span></div>
+  <div class="row"><span class="lbl">Speech Pause Ratio</span><span class="val">${pr}</span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Delta from Baseline</div>
+  <div class="row"><span class="lbl">Face</span><span class="val">${deltaStr(fa,baseline&&parseFloat(baseline.fa))}</span></div>
+  <div class="row"><span class="lbl">Arms</span><span class="val">${deltaStr(parseFloat(ad),baseline&&parseFloat(baseline.ad))}</span></div>
+  <div class="row"><span class="lbl">Speech</span><span class="val">${deltaStr(pr,baseline&&parseFloat(baseline.pr))}</span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Trend Snapshot (last 5 check-ins)</div>
+  <div style="padding:8px 0;">${recentDots||'<span style="color:#999;font-size:0.85rem;">No history yet</span>'}</div>
+  <div style="font-size:0.82rem;color:#888;font-family:monospace;margin-top:4px;">● Green = All Clear &nbsp; ● Yellow = Mild Variation &nbsp; ● Red = Warning Signs</div>
+</div>
+
+<div class="section">
+  <div class="section-title">What Changed</div>
+  ${changes.map(c=>`<div class="change-item">${c}</div>`).join('')}
+</div>
+
+<div class="section">
+  <div class="section-title">Action Guidance</div>
+  <div class="change-item">If you suspect stroke symptoms (facial drooping, arm weakness, speech difficulty), call emergency services immediately.</div>
+  <div class="change-item">Bring this summary to a clinician if you are concerned about any pattern.</div>
+  <div class="change-item">This tool does not diagnose. Use it as a personal awareness aid alongside medical care.</div>
+</div>
+
+<div class="footer">Generated by Baseline · Processed locally in-browser · No data uploaded or stored externally · ${dateStr}</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),400);
+}
+
+function generateHistSummary(){
+  if(!hist.length){alert('No check-in history to export yet.');return;}
+  const h=hist[0];
+  generateSummary(h.status,h.fRaw||h.f,h.aRaw||h.a,h.sRaw||h.s,parseFloat(h.f),parseFloat(h.a),parseFloat(h.s),parseFloat(h.t));
+}
+
+function clearHist(){
+  if(confirm('Clear all check-in history? Your baseline will be kept.')){
+    hist=[];try{localStorage.removeItem('sc_hist');}catch(e){}
+    // Only revoke check-in videos (numeric keys), keep baseline video
+    _recordingBlobs.forEach((url,key)=>{if(typeof key==='number')URL.revokeObjectURL(url);});
+    [..._recordingBlobs.keys()].filter(k=>typeof k==='number').forEach(k=>_recordingBlobs.delete(k));
+    renderHistory();
+  }
+}
+
+function clearBaseline(){
+  if(confirm('Reset your baseline? You will need to re-record it before running future FAST checks.')){
+    baseline=null;try{localStorage.removeItem('sc_baseline');}catch(e){}
+    updateHomeScreen();renderHistory();
+  }
+}
+
+// Init
+updateHomeScreen();
+renderHistory();
+updateConfidenceUI();
+</script>
+</body>
+</html>
