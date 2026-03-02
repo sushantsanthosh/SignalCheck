@@ -1308,7 +1308,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         <button class="btn-ghost" onclick="clearHist()" style="font-size:0.875rem;padding:0.7rem 1.9rem;">Clear History</button>
         <button class="btn-ghost" onclick="clearBaseline()" id="btn-clear-baseline" style="font-size:0.875rem;padding:0.7rem 1.9rem;display:none;">Reset Baseline</button>
         <button id="btn-demo-populate" onclick="populateDemoHistory()" title="Demo: populate sample history" style="font-size:0.875rem;padding:0.7rem 1.2rem;background:none;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.1);border-radius:100px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.3s;" onmouseover="this.style.borderColor='rgba(0,229,200,0.35)';this.style.color='rgba(0,229,200,0.5)';" onmouseout="this.style.borderColor='rgba(255,255,255,0.05)';this.style.color='rgba(255,255,255,0.1)';">◈</button>
-        <button id="btn-demo-mode" onclick="toggleDemoMode()" title="Demo mode: guaranteed green score" style="font-size:0.875rem;padding:0.7rem 1.2rem;background:none;border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.1);border-radius:100px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.3s;">◉</button>
       </div>
       <!-- FEATURE 4: Monitoring Streak -->
       <div class="streak-card" id="streak-card">
@@ -1953,7 +1952,6 @@ async function initCam(){
 }
 /* ── SIGNAL QUALITY GATE ── */
 let sqScores={lighting:0.88,face:0.84,body:0.5,audio:0.88};
-let _demoMode=false; // when true: all signals good, score locked to 0.2
 let sqTimer=null;
 let _qualityScore=0.75;
 
@@ -2527,12 +2525,6 @@ async function animateSQ(){
   const audioSeq=[0.88,0.84,0.90,0.86,0.92,0.88,0.91,0.89,0.87,0.90];
   let audioIdx=0;
   sqTimer=setInterval(async()=>{
-    if(_demoMode){
-      sqScores={lighting:1.0,face:1.0,body:1.0,audio:1.0};
-      _qualityScore=1.0;
-      updateSqUI();
-      return;
-    }
     // REAL lighting + face framing from canvas
     const{lighting,face}=measureLightingAndFraming(vid);
     sqScores.lighting=lighting;
@@ -2565,13 +2557,6 @@ function stopSQ(){if(sqTimer){clearInterval(sqTimer);sqTimer=null;}}
 let _gateDecision='pass'; // pass | warn | block
 
 function showQualityGate(){
-  // Demo mode: force all signals good and skip the gate entirely
-  if(_demoMode){
-    sqScores={lighting:1.0,face:1.0,body:1.0,audio:1.0};
-    _qualityScore=1.0;
-    proceedFromGate();
-    return;
-  }
   const total=_qualityScore;
   const box=document.getElementById('qg-box');
   const overlay=document.getElementById('qg-overlay');
@@ -3328,8 +3313,7 @@ function runProcessing(){
       document.getElementById('pc-'+s.id).classList.add('done');
     },s.delay);
   });
-  const procDelay=_demoMode?600:5000;
-  setTimeout(()=>{buildResults();showScreen('results');startPreviewLoop();},procDelay);
+  setTimeout(()=>{buildResults();showScreen('results');startPreviewLoop();},5000);
 }
 
 /* ── RESULTS ── */
@@ -3348,8 +3332,6 @@ function _mad(arr,med){
 }
 
 function buildResults(){
-  // ── Demo mode: inject clean values then fall through to normal scoring ─────
-  // demo mode: real measurements display normally; total is clamped below
   // ── Face asymmetry ────────────────────────────────────────────────────────
   // _faceFrames contains `raw` values from computeFaceAsymmetry (uncapped).
   //
@@ -3546,7 +3528,7 @@ function buildResults(){
     ss = Math.min(1, ss);
   }
 
-  const total = _demoMode ? 0.2 : fs + as + ss;
+  const total = fs + as + ss;
 
   // Store quality score for this recording
   storeQualityScore(_qualityScore);
@@ -4235,6 +4217,7 @@ function renderHistory(){
 
 /* ── DEMO DATA POPULATION ── */
 function populateDemoHistory(){
+  if(!confirm('Replace current history with demo data?')) return;
 
   hist = [];
   try { localStorage.removeItem('sc_hist'); } catch(e) {}
@@ -4333,27 +4316,10 @@ function populateDemoHistory(){
   hist = entries.reverse();
   try { localStorage.setItem('sc_hist', JSON.stringify(hist)); } catch(e) {}
 
-  // Store quality scores (all 1.0 for demo) so confidence reads Trusted
-  const demoQuality = Array(20).fill(1.0);
-  try { localStorage.setItem('sc_quality_scores', JSON.stringify(demoQuality)); } catch(e) {}
-
   updateHomeScreen();
-  updateConfidenceUI();
   renderHistory();
   showScreen('history');
 }
-
-function toggleDemoMode(){
-  _demoMode=!_demoMode;
-  const btn=document.getElementById('btn-demo-mode');
-  if(btn){
-    btn.style.borderColor=_demoMode?'rgba(0,229,200,0.6)':'rgba(255,255,255,0.05)';
-    btn.style.color=_demoMode?'rgba(0,229,200,0.8)':'rgba(255,255,255,0.1)';
-    btn.style.background=_demoMode?'rgba(0,229,200,0.08)':'none';
-    btn.title=_demoMode?'Demo mode ON — scores locked to 0.2':'Demo mode: guaranteed green score';
-  }
-}
-
 function smoothCurve(pts){
   if(pts.length<2)return pts.length===1?`M${pts[0].join(',')}`:'';
   if(pts.length===2)return `M${pts[0].join(',')} L${pts[1].join(',')}`;
@@ -5733,7 +5699,6 @@ function computeDrift(session, profile) {
 function renderDriftCard(drift) {
   const card = document.getElementById('drift-card');
   if (!card) return;
-  card.style.display = 'none'; return; // drift card permanently hidden
 
   if (!drift || drift.status === 'BUILDING') {
     card.style.display = 'block';
