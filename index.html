@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Baseline</title>
 <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=Space+Mono&family=League+Spartan:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #06080f; --surface: #0d1220;
@@ -48,7 +48,7 @@ section{position:relative;z-index:1;}
 .hero-eyebrow{font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.2em;color:var(--teal);text-transform:uppercase;margin-bottom:2rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.3s;}
 .hero h1{font-family:'DM Serif Display',serif;font-size:clamp(3.5rem,8vw,7rem);line-height:1.05;letter-spacing:-0.03em;margin-bottom:1.5rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.5s;}
 .hero h1 em{font-style:italic;color:var(--teal);text-shadow:0 0 40px rgba(0,229,200,0.4);}
-.hero-sub{font-size:clamp(1.15rem,2vw,1.4rem);color:var(--muted);max-width:560px;line-height:1.8;margin-bottom:3rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.7s;}
+.hero-sub{font-family:'League Spartan',sans-serif;font-size:clamp(1.15rem,2vw,1.4rem);color:var(--muted);max-width:560px;line-height:1.8;margin-bottom:3rem;opacity:0;animation:fadeUp 0.8s ease forwards 0.7s;}
 .hero-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp 0.8s ease forwards 0.9s;}
 .waveform{display:flex;align-items:center;justify-content:center;gap:3px;height:80px;}
 .bar{width:3px;background:var(--teal);border-radius:2px;opacity:0.6;animation:pulse var(--dur,1.5s) ease-in-out infinite;animation-delay:var(--delay,0s);}
@@ -61,7 +61,7 @@ section{position:relative;z-index:1;}
 .section-pad{padding:7rem 4rem;}
 .section-tag{font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--violet);margin-bottom:1rem;}
 .section-title{font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3.5rem);letter-spacing:-0.02em;line-height:1.15;margin-bottom:1.5rem;}
-.section-desc{color:var(--muted);max-width:500px;font-size:1.1rem;line-height:1.8;}
+.section-desc{font-family:'League Spartan',sans-serif;color:var(--muted);max-width:500px;font-size:1.1rem;line-height:1.8;}
 .steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5px;background:var(--cbord);margin-top:5rem;border:1px solid var(--cbord);border-radius:20px;overflow:hidden;}
 .step{background:var(--surface);padding:3rem;transition:background 0.3s;position:relative;overflow:hidden;}
 .step::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 0% 0%,var(--sg,transparent) 0%,transparent 60%);opacity:0;transition:opacity 0.4s;}
@@ -70,7 +70,7 @@ section{position:relative;z-index:1;}
 .step-num{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-bottom:1.5rem;}
 .step-icon{font-size:2rem;margin-bottom:1.25rem;display:block;}
 .step h3{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:0.75rem;letter-spacing:-0.01em;}
-.step p{color:var(--muted);font-size:1.05rem;line-height:1.8;}
+.step p{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:1.05rem;line-height:1.8;}
 .signals-section{padding:7rem 4rem;background:linear-gradient(180deg,transparent,rgba(0,229,200,0.02),transparent);}
 .signals-header{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:end;margin-bottom:4rem;}
 .signals-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;}
@@ -80,7 +80,7 @@ section{position:relative;z-index:1;}
 .signal-card:nth-child(2){--ac:var(--violet);}.signal-card:nth-child(3){--ac:var(--blue);}.signal-card:nth-child(4){--ac:var(--violet);}.signal-card:nth-child(5){--ac:var(--blue);}
 .signal-emoji{font-size:1.5rem;margin-bottom:1rem;}
 .signal-card h4{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.5rem;}
-.signal-card p{color:var(--muted);font-size:1rem;line-height:1.7;}
+.signal-card p{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:1rem;line-height:1.7;}
 .ethics-section{padding:7rem 4rem;}
 .ethics-inner{background:linear-gradient(135deg,rgba(0,229,200,0.04),rgba(168,85,247,0.04));border:1px solid var(--cbord);border-radius:24px;padding:5rem;display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center;}
 .ethics-title{font-family:'DM Serif Display',serif;font-size:clamp(2rem,3.5vw,3rem);line-height:1.15;letter-spacing:-0.02em;margin-bottom:1.5rem;}
@@ -90,8 +90,8 @@ section{position:relative;z-index:1;}
 .ethics-item{display:flex;align-items:flex-start;gap:1rem;padding:1.25rem 1.5rem;background:var(--cb);border:1px solid var(--cbord);border-radius:12px;transition:border-color 0.3s;}
 .ethics-item:hover{border-color:rgba(255,255,255,0.12);}
 .ethics-icon{font-size:1.1rem;flex-shrink:0;margin-top:0.1rem;}
-.ethics-item-text{font-size:1rem;color:var(--text);}
-.ethics-item-text span{display:block;font-size:0.9rem;color:var(--muted);margin-top:0.2rem;}
+.ethics-item-text{font-family:'League Spartan',sans-serif;font-size:1rem;color:var(--text);}
+.ethics-item-text span{font-family:'League Spartan',sans-serif;display:block;font-size:0.9rem;color:var(--muted);margin-top:0.2rem;}
 .chart-section{padding:7rem 4rem;text-align:center;}
 .chart-container{max-width:800px;margin:4rem auto 0;background:var(--surface);border:1px solid var(--cbord);border-radius:24px;padding:3rem;position:relative;overflow:hidden;}
 .chart-container::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--teal),transparent);}
@@ -110,12 +110,12 @@ section{position:relative;z-index:1;}
 .audience-big{font-family:'DM Serif Display',serif;font-size:3rem;line-height:1;margin-bottom:0.5rem;}
 .audience-card:nth-child(1) .audience-big{color:var(--teal);}.audience-card:nth-child(2) .audience-big{color:var(--violet);}.audience-card:nth-child(3) .audience-big{color:var(--blue);}
 .audience-card h4{font-size:1.1rem;font-weight:500;margin-bottom:0.75rem;}
-.audience-card p{color:var(--muted);font-size:1rem;line-height:1.8;}
+.audience-card p{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:1rem;line-height:1.8;}
 .cta-section{padding:7rem 4rem;text-align:center;}
 .cta-inner{max-width:700px;margin:0 auto;}
 .cta-inner h2{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4.5rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:1.5rem;}
 .cta-inner h2 em{font-style:italic;color:var(--teal);text-shadow:0 0 40px rgba(0,229,200,0.4);}
-.cta-inner p{color:var(--muted);max-width:450px;margin:0 auto 3rem;line-height:1.8;font-size:1.1rem;}
+.cta-inner p{font-family:'League Spartan',sans-serif;color:var(--muted);max-width:450px;margin:0 auto 3rem;line-height:1.8;font-size:1.1rem;}
 footer{padding:3rem 4rem;border-top:1px solid var(--cbord);display:flex;align-items:center;justify-content:space-between;}
 .footer-logo{font-family:'DM Serif Display',serif;color:var(--muted);font-size:1rem;}
 .footer-note{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;max-width:400px;text-align:right;line-height:1.6;}
@@ -149,7 +149,7 @@ footer{padding:3rem 4rem;border-top:1px solid var(--cbord);display:flex;align-it
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.25;}}
 .fast-title{font-family:'DM Serif Display',serif;font-size:clamp(2.8rem,7vw,5.5rem);letter-spacing:-0.03em;line-height:1.08;margin-bottom:1.25rem;}
 .fast-title em{font-style:italic;color:var(--teal);text-shadow:0 0 50px rgba(0,229,200,0.35);}
-.fast-sub{color:var(--muted);max-width:520px;font-size:1.1rem;line-height:1.8;margin-bottom:2.5rem;}
+.fast-sub{font-family:'League Spartan',sans-serif;color:var(--muted);max-width:520px;font-size:1.1rem;line-height:1.8;margin-bottom:2.5rem;}
 .fast-start-btn{display:flex;align-items:center;gap:0.75rem;background:var(--teal);color:var(--bg);border:none;padding:1rem 2.75rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:1rem;cursor:pointer;transition:all 0.3s;box-shadow:0 0 50px rgba(0,229,200,0.35);margin-bottom:1.5rem;}
 .fast-start-btn:hover{box-shadow:0 0 70px rgba(0,229,200,0.55);transform:translateY(-2px);}
 .fast-disclaimer{font-family:'Space Mono',monospace;font-size:0.75rem;letter-spacing:0.04em;color:var(--muted);max-width:480px;line-height:1.7;padding:0.9rem 1.4rem;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:10px;margin-bottom:2.5rem;}
@@ -546,11 +546,11 @@ footer{padding:3rem 4rem;border-top:1px solid var(--cbord);display:flex;align-it
 .hiw-tag{font-family:'Space Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--teal);margin-bottom:1rem;}
 .hiw-title{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);letter-spacing:-0.03em;line-height:1.1;margin-bottom:1.25rem;}
 .hiw-title em{font-style:italic;color:var(--teal);text-shadow:0 0 40px rgba(0,229,200,0.35);}
-.hiw-sub{color:var(--muted);font-size:1.1rem;line-height:1.8;max-width:600px;margin:0 auto;}
+.hiw-sub{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:1.1rem;line-height:1.8;max-width:600px;margin:0 auto;}
 .hiw-section{margin-bottom:4.5rem;}
 .hiw-section-tag{font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--violet);margin-bottom:0.75rem;}
 .hiw-section-title{font-family:'DM Serif Display',serif;font-size:1.9rem;letter-spacing:-0.02em;margin-bottom:0.75rem;}
-.hiw-section-desc{color:var(--muted);font-size:1.05rem;line-height:1.8;margin-bottom:2rem;max-width:700px;}
+.hiw-section-desc{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:1.05rem;line-height:1.8;margin-bottom:2rem;max-width:700px;}
 .hiw-steps{display:flex;flex-direction:column;gap:1px;background:var(--cbord);border-radius:16px;overflow:hidden;}
 .hiw-step{background:var(--surface);padding:1.75rem 2rem;display:grid;grid-template-columns:48px 1fr;gap:1.5rem;align-items:flex-start;transition:background 0.2s;}
 .hiw-step:hover{background:#111827;}
@@ -559,13 +559,13 @@ footer{padding:3rem 4rem;border-top:1px solid var(--cbord);display:flex;align-it
 .hiw-step-num.violet{background:rgba(168,85,247,0.12);color:var(--violet);border:1px solid rgba(168,85,247,0.25);}
 .hiw-step-num.blue{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.25);}
 .hiw-step-info h4{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:0.4rem;}
-.hiw-step-info p{color:var(--muted);font-size:1rem;line-height:1.75;}
+.hiw-step-info p{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:1rem;line-height:1.75;}
 .hiw-step-info .hiw-step-note{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--teal);letter-spacing:0.06em;margin-top:0.5rem;opacity:0.8;}
 .hiw-signal-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
 .hiw-signal{background:var(--surface);border:1px solid var(--cbord);border-radius:14px;padding:1.5rem;}
 .hiw-signal-icon{font-size:1.6rem;margin-bottom:0.75rem;}
 .hiw-signal h4{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:0.4rem;}
-.hiw-signal p{color:var(--muted);font-size:0.96rem;line-height:1.7;}
+.hiw-signal p{font-family:'League Spartan',sans-serif;color:var(--muted);font-size:0.96rem;line-height:1.7;}
 .hiw-signal .hiw-signal-metric{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:0.6rem;padding-top:0.6rem;border-top:1px solid var(--cbord);letter-spacing:0.05em;}
 .hiw-faq{display:flex;flex-direction:column;gap:0.75rem;}
 .hiw-faq-item{background:var(--surface);border:1px solid var(--cbord);border-radius:13px;overflow:hidden;}
@@ -740,6 +740,120 @@ footer{padding:3rem 4rem;border-top:1px solid var(--cbord);display:flex;align-it
 .accent-dot.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,0.3);}
 input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--teal);cursor:pointer;box-shadow:0 0 8px rgba(0,229,200,0.4);}
+
+/* ===== HEART MONITOR OVERLAY ===== */
+#heart-overlay{font-size:var(--app-fz);}
+.heart-nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:1rem 2.5rem;background:rgba(6,8,15,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--cbord);}
+.heart-nav-logo{font-family:'DM Serif Display',serif;font-size:1.1rem;color:#ef4444;text-shadow:0 0 20px rgba(239,68,68,0.4);}
+.heart-nav-sub{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.05em;margin-left:0.4rem;}
+.heart-nav-right{display:flex;align-items:center;gap:0.75rem;}
+.heart-nav-btn{background:none;border:1px solid var(--cbord);color:var(--muted);padding:0.32rem 0.9rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.78rem;cursor:pointer;transition:all 0.2s;}
+.heart-nav-btn:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.heart-body{max-width:1100px;margin:0 auto;padding:2.5rem 2rem 5rem;display:flex;flex-direction:column;gap:1.5rem;}
+.heart-panel{background:var(--surface);border:1px solid var(--cbord);border-radius:16px;padding:1.6rem;position:relative;overflow:hidden;}
+.heart-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#ef4444,transparent);}
+.heart-panel-label{font-family:'Space Mono',monospace;font-size:0.68rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:1.1rem;}
+
+/* BLE panel */
+.ble-panel::before{background:linear-gradient(90deg,transparent,var(--teal),transparent);}
+.ble-status-row{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;}
+.ble-orb{width:52px;height:52px;border-radius:50%;background:rgba(0,229,200,0.08);border:1px solid rgba(0,229,200,0.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;transition:all 0.4s;}
+.ble-orb.connected{background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.4);box-shadow:0 0 24px rgba(239,68,68,0.3);}
+.ble-orb.searching{animation:orbP 1.5s ease-in-out infinite;}
+@keyframes orbP{0%,100%{box-shadow:0 0 8px rgba(0,229,200,0.2);}50%{box-shadow:0 0 24px rgba(0,229,200,0.5);}}
+.ble-info{flex:1;}
+.ble-status-text{font-size:0.95rem;font-weight:500;margin-bottom:0.2rem;}
+.ble-device-name{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--teal);margin-bottom:0.25rem;}
+.ble-hint{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.04em;line-height:1.5;}
+.ble-connect-btn{background:var(--teal);color:var(--bg);border:none;padding:0.65rem 1.5rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:0.875rem;cursor:pointer;transition:all 0.3s;white-space:nowrap;box-shadow:0 0 24px rgba(0,229,200,0.25);}
+.ble-connect-btn:hover{box-shadow:0 0 40px rgba(0,229,200,0.45);transform:translateY(-1px);}
+.ble-connect-btn.connecting{opacity:0.6;cursor:not-allowed;transform:none;}
+.ble-connect-btn.disconnect{background:transparent;border:1px solid rgba(239,68,68,0.4);color:#ef4444;box-shadow:none;}
+.ble-connect-btn.disconnect:hover{background:rgba(239,68,68,0.08);box-shadow:0 0 16px rgba(239,68,68,0.2);}
+.ble-demo-banner{display:flex;align-items:center;gap:0.6rem;margin-top:1rem;padding:0.5rem 1rem;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--yellow);letter-spacing:0.06em;}
+.ble-demo-dot{width:6px;height:6px;border-radius:50%;background:var(--yellow);animation:blink 1.5s ease-in-out infinite;flex-shrink:0;}
+
+/* Metrics row */
+.heart-metrics-row{display:grid;grid-template-columns:2fr 1.5fr 1fr;gap:1.5rem;}
+
+/* BPM panel */
+.bpm-display-wrap{display:flex;align-items:center;gap:1.5rem;margin-bottom:0.9rem;}
+.bpm-heart-wrap{flex-shrink:0;}
+.bpm-heart-svg{width:56px;height:52px;display:block;}
+.bpm-heart-path{fill:#ef4444;filter:drop-shadow(0 0 8px rgba(239,68,68,0.5));transform-origin:50% 50%;}
+.bpm-heart-path.beating{animation:heartBeat 0.6s ease-out;}
+@keyframes heartBeat{0%{transform:scale(1);}30%{transform:scale(1.25);}60%{transform:scale(0.95);}100%{transform:scale(1);}}
+.bpm-value{font-family:'DM Serif Display',serif;font-size:3.5rem;letter-spacing:-0.04em;line-height:1;color:#ef4444;text-shadow:0 0 30px rgba(239,68,68,0.4);}
+.bpm-unit{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.1em;margin-top:0.2rem;}
+.bpm-zone-row{display:flex;align-items:center;gap:0.75rem;margin-top:0.6rem;}
+.bpm-zone-pill{font-family:'Space Mono',monospace;font-size:0.65rem;letter-spacing:0.08em;padding:0.2rem 0.65rem;border-radius:100px;background:rgba(255,255,255,0.06);border:1px solid var(--cbord);color:var(--muted);}
+.bpm-zone-pill.zone-rest{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:var(--green);}
+.bpm-zone-pill.zone-fat{background:rgba(0,229,200,0.1);border-color:rgba(0,229,200,0.3);color:var(--teal);}
+.bpm-zone-pill.zone-cardio{background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.3);color:var(--yellow);}
+.bpm-zone-pill.zone-peak{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#ef4444;}
+.bpm-baseline-delta{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);}
+
+/* HRV panel */
+.hrv-value-wrap{display:flex;align-items:baseline;gap:0.4rem;margin-bottom:1rem;}
+.hrv-value{font-family:'DM Serif Display',serif;font-size:2.5rem;letter-spacing:-0.04em;line-height:1;color:var(--violet);}
+.hrv-unit{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;}
+.hrv-bar-wrap{margin-bottom:0.75rem;}
+.hrv-bar-track{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-bottom:0.35rem;}
+.hrv-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#ef4444,var(--violet));border-radius:3px;transition:width 0.6s ease;}
+.hrv-scale-labels{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);}
+.hrv-rr-count{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);}
+
+/* SpO2 panel */
+.spo2-value-wrap{display:flex;align-items:baseline;gap:0.4rem;margin-bottom:0.6rem;}
+.spo2-value{font-family:'DM Serif Display',serif;font-size:2.5rem;letter-spacing:-0.04em;line-height:1;color:var(--blue);}
+.spo2-unit{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;}
+.spo2-caveat{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);line-height:1.6;}
+
+/* ECG panel */
+.ecg-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.ecg-badge{font-family:'Space Mono',monospace;font-size:0.62rem;padding:0.2rem 0.65rem;border-radius:100px;background:rgba(0,229,200,0.08);border:1px solid rgba(0,229,200,0.2);color:var(--teal);letter-spacing:0.05em;}
+.ecg-canvas-wrap{width:100%;border-radius:8px;overflow:hidden;background:#030508;border:1px solid var(--cbord);}
+.ecg-canvas-wrap canvas{display:block;width:100%;height:120px;}
+.ecg-footer{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-top:0.75rem;}
+.ecg-note{font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);line-height:1.6;flex:1;}
+.ecg-speed-lbl{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);white-space:nowrap;}
+
+/* Trend panel */
+.trend-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.trend-period-lbl{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--teal);letter-spacing:0.08em;}
+.trend-canvas-wrap{width:100%;border-radius:8px;overflow:hidden;background:#030508;border:1px solid var(--cbord);margin-bottom:1rem;}
+.trend-canvas-wrap canvas{display:block;width:100%;height:100px;}
+.trend-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.trend-stat-val{font-family:'DM Serif Display',serif;font-size:1.6rem;letter-spacing:-0.04em;color:var(--text);}
+.trend-stat-lbl{font-family:'Space Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.08em;margin-top:0.1rem;}
+
+/* Heart baseline panel */
+.heart-baseline-content{margin-bottom:1rem;font-size:0.9rem;color:var(--muted);line-height:1.8;}
+.heart-bl-row{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid var(--cbord);}
+.heart-bl-row:last-child{border-bottom:none;}
+.heart-bl-label{font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.06em;}
+.heart-bl-value{font-family:'DM Serif Display',serif;font-size:1.2rem;color:var(--text);}
+.heart-bl-delta{font-family:'Space Mono',monospace;font-size:0.68rem;padding:0.15rem 0.5rem;border-radius:100px;}
+.heart-bl-delta.up{background:rgba(245,158,11,0.1);color:var(--yellow);}
+.heart-bl-delta.down{background:rgba(0,229,200,0.1);color:var(--teal);}
+.heart-bl-delta.ok{background:rgba(34,197,94,0.1);color:var(--green);}
+.heart-set-baseline-btn{background:transparent;border:1px solid rgba(239,68,68,0.4);color:#ef4444;padding:0.55rem 1.25rem;border-radius:100px;font-family:'DM Sans',sans-serif;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+.heart-set-baseline-btn:hover{background:rgba(239,68,68,0.08);}
+
+/* Heart history panel */
+.heart-hist-entry{display:flex;align-items:center;gap:1rem;padding:0.9rem 0;border-bottom:1px solid var(--cbord);}
+.heart-hist-entry:last-child{border-bottom:none;}
+.heart-hist-date{font-family:'Space Mono',monospace;font-size:0.68rem;color:var(--muted);min-width:90px;}
+.heart-hist-bpm{font-family:'DM Serif Display',serif;font-size:1.4rem;color:#ef4444;}
+.heart-hist-meta{font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);line-height:1.7;}
+.heart-hist-empty{font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);text-align:center;padding:2rem;letter-spacing:0.06em;}
+
+@media(max-width:720px){
+  .heart-metrics-row{grid-template-columns:1fr;}
+  .heart-body{padding:1.5rem 1rem 4rem;}
+  .heart-nav{padding:0.75rem 1.25rem;}
+  .trend-stats-row{grid-template-columns:repeat(2,1fr);}
+}
 </style>
 </head>
 <body>
@@ -862,7 +976,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 <section class="audience-section" id="why">
   <div style="max-width:1100px;margin:0 auto">
     <p class="section-tag reveal">Why It Matters</p>
-    <h2 class="section-title reveal">Every minute matters.<br>Most strokes go undetected<br>for too long.</h2>
+    <h2 class="section-title reveal">Every minute counts.<br>Most strokes go undetected<br>for too long.</h2>
     <div class="audience-grid">
       <div class="audience-card reveal"><div class="audience-big">80%</div><h4>Are preventable or treatable</h4><p>Stroke is the leading cause of long-term disability worldwide — yet up to 80% of strokes can be prevented or minimized when warning signs are caught and acted on early.</p></div>
       <div class="audience-card reveal"><div class="audience-big">F·A·S·T</div><h4>The standard detection protocol</h4><p>Face drooping, Arm weakness, Speech difficulty, Time to call. FAST is the global screening framework — Baseline runs all three signal checks in only 30 seconds (≈35 with pauses), from any device with a camera.</p></div>
@@ -896,6 +1010,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
     <div class="app-nav-logo" onclick="stopPreviewLoop();showScreen('home');" style="cursor:pointer;">Baseline <span class="app-nav-sub">/ FAST Check</span></div>
     <div class="app-nav-right">
       <button class="app-nav-hist" onclick="goHistory()">📈 History</button>
+      <button class="app-nav-hist" onclick="goHeart()" style="color:#ef4444;border-color:rgba(239,68,68,0.35);">♥ Heart</button>
       <button class="app-nav-hist" onclick="goSettings()">⚙️ Settings</button>
       <span id="nav-bc-pill" class="bc-pill low" tabindex="0">
         <svg class="bc-ring-svg" width="20" height="20" viewBox="0 0 20 20">
@@ -1500,6 +1615,137 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
 
 </div><!-- #fast-app -->
 
+<!-- ══ HEART MONITOR OVERLAY ══ -->
+<div id="heart-overlay" style="display:none;position:fixed;inset:0;z-index:510;background:var(--bg);overflow-y:auto;">
+
+  <div class="heart-nav">
+    <div class="heart-nav-logo">Baseline <span class="heart-nav-sub">/ Heart Monitor</span></div>
+    <div class="heart-nav-right">
+      <button class="heart-nav-btn" id="heart-hist-toggle-btn" onclick="heartHistoryView()">📈 Heart History</button>
+      <button class="heart-nav-btn" onclick="closeHeart()">← Back</button>
+    </div>
+  </div>
+
+  <div class="heart-body">
+
+    <!-- Panel 1: Bluetooth Connection -->
+    <div class="heart-panel ble-panel">
+      <div class="heart-panel-label">Apple Watch Connection</div>
+      <div class="ble-status-row">
+        <div class="ble-orb" id="ble-orb">⌚</div>
+        <div class="ble-info">
+          <div class="ble-status-text" id="ble-status-text">Not connected</div>
+          <div class="ble-device-name" id="ble-device-name">—</div>
+          <div class="ble-hint">Apple Watch must be in a Workout to broadcast BLE · Chrome / Edge only</div>
+        </div>
+        <button class="ble-connect-btn" id="ble-connect-btn" onclick="heartBLE.connect()">Connect Watch</button>
+      </div>
+      <div class="ble-demo-banner" id="ble-demo-banner">
+        <span class="ble-demo-dot"></span>
+        Demo mode — simulated data. Connect your Apple Watch for live readings.
+      </div>
+    </div>
+
+    <!-- Metrics row: BPM · HRV · SpO2 -->
+    <div class="heart-metrics-row">
+
+      <!-- BPM panel -->
+      <div class="heart-panel">
+        <div class="heart-panel-label">Heart Rate</div>
+        <div class="bpm-display-wrap">
+          <div class="bpm-heart-wrap">
+            <svg class="bpm-heart-svg" viewBox="0 0 60 55">
+              <path class="bpm-heart-path" id="bpm-heart-path"
+                d="M30 50 C10 35,0 20,0 12 C0 5,6 0,12 0 C18 0,24 4,30 10 C36 4,42 0,48 0 C54 0,60 5,60 12 C60 20,50 35,30 50Z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="bpm-value" id="bpm-value">--</div>
+            <div class="bpm-unit">BPM</div>
+          </div>
+        </div>
+        <div class="bpm-zone-row">
+          <span class="bpm-zone-pill" id="bpm-zone-pill">—</span>
+          <span class="bpm-baseline-delta" id="bpm-baseline-delta"></span>
+        </div>
+      </div>
+
+      <!-- HRV panel -->
+      <div class="heart-panel">
+        <div class="heart-panel-label">HRV · RMSSD</div>
+        <div class="hrv-value-wrap">
+          <div class="hrv-value" id="hrv-value">--</div>
+          <div class="hrv-unit">ms</div>
+        </div>
+        <div class="hrv-bar-wrap">
+          <div class="hrv-bar-track"><div class="hrv-bar-fill" id="hrv-bar-fill"></div></div>
+          <div class="hrv-scale-labels"><span>Low</span><span>Moderate</span><span>High</span></div>
+        </div>
+        <div class="hrv-rr-count" id="hrv-rr-count">Waiting for RR intervals…</div>
+      </div>
+
+      <!-- SpO2 panel -->
+      <div class="heart-panel">
+        <div class="heart-panel-label">SpO₂</div>
+        <div class="spo2-value-wrap">
+          <div class="spo2-value" id="spo2-value">98</div>
+          <div class="spo2-unit">%</div>
+        </div>
+        <div class="spo2-caveat" id="spo2-caveat">Apple Watch SpO₂ is locked in HealthKit and can't be accessed by web browsers. Value shown is demo only.</div>
+      </div>
+
+    </div><!-- .heart-metrics-row -->
+
+    <!-- Panel: ECG Waveform -->
+    <div class="heart-panel">
+      <div class="ecg-header">
+        <div class="heart-panel-label" style="margin-bottom:0;">ECG Waveform</div>
+        <div class="ecg-badge">Synthetic · Timed to real BPM</div>
+      </div>
+      <div class="ecg-canvas-wrap" style="margin-top:1rem;">
+        <canvas id="ecg-canvas" height="120"></canvas>
+      </div>
+      <div class="ecg-footer">
+        <span class="ecg-note">Apple Watch ECG data is locked in HealthKit and cannot be accessed by web browsers. This waveform uses a clinically-modelled PQRST template (McSharry et al.) timed to your actual BPM rhythm from the watch.</span>
+        <span class="ecg-speed-lbl">25 mm/s</span>
+      </div>
+    </div>
+
+    <!-- Panel: 60s BPM Trend -->
+    <div class="heart-panel">
+      <div class="trend-header">
+        <div class="heart-panel-label" style="margin-bottom:0;">Rolling 60s BPM Trend</div>
+        <div class="trend-period-lbl" id="trend-period-lbl">Live</div>
+      </div>
+      <div class="trend-canvas-wrap" style="margin-top:1rem;">
+        <canvas id="bpm-trend-canvas" height="100"></canvas>
+      </div>
+      <div class="trend-stats-row">
+        <div><div class="trend-stat-val" id="trend-min">--</div><div class="trend-stat-lbl">Min BPM</div></div>
+        <div><div class="trend-stat-val" id="trend-avg">--</div><div class="trend-stat-lbl">Avg BPM</div></div>
+        <div><div class="trend-stat-val" id="trend-max">--</div><div class="trend-stat-lbl">Max BPM</div></div>
+        <div><div class="trend-stat-val" id="trend-hrv-avg">--</div><div class="trend-stat-lbl">Avg HRV</div></div>
+      </div>
+    </div>
+
+    <!-- Panel: Heart Baseline -->
+    <div class="heart-panel">
+      <div class="heart-panel-label">Heart Baseline</div>
+      <div class="heart-baseline-content" id="heart-baseline-content">
+        <div style="font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);">No heart baseline saved yet. Let the monitor run for a minute, then save your resting readings as a personal reference point.</div>
+      </div>
+      <button class="heart-set-baseline-btn" onclick="heartBaseline.save()">Save Current as Baseline</button>
+    </div>
+
+    <!-- Panel: Heart History (toggled) -->
+    <div class="heart-panel" id="heart-hist-panel" style="display:none;">
+      <div class="heart-panel-label">Heart History</div>
+      <div id="heart-hist-entries"><div class="heart-hist-empty">No heart sessions saved yet.</div></div>
+    </div>
+
+  </div><!-- .heart-body -->
+</div><!-- #heart-overlay -->
+
 <!-- ── SETTINGS SCREEN ── -->
 <!-- NOTE: This is outside fast-app intentionally — it's a full-page overlay like HIW -->
 <div id="settings-overlay" style="display:none;position:fixed;inset:0;z-index:510;background:var(--bg);overflow-y:auto;">
@@ -1765,7 +2011,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
       <div class="hiw-faq">
         <div class="hiw-faq-item">
           <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">Is this a medical device? <span>+</span></div>
-          <div class="hiw-faq-a">No. Anchor is an informational awareness tool, not a medical device. It cannot diagnose stroke or any other condition. It is designed to help you notice changes in your own signals over time and act faster if something seems wrong. If you have any sudden neurological symptoms, call emergency services immediately — do not wait for a check-in.</div>
+          <div class="hiw-faq-a">No. Baseline is an informational awareness tool, not a medical device. It cannot diagnose stroke or any other condition. It is designed to help you notice changes in your own signals over time and act faster if something seems wrong. If you have any sudden neurological symptoms, call emergency services immediately — do not wait for a check-in.</div>
         </div>
         <div class="hiw-faq-item">
           <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">Does it work for all ages? <span>+</span></div>
@@ -1773,7 +2019,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         </div>
         <div class="hiw-faq-item">
           <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">How accurate is the face landmark detection? <span>+</span></div>
-          <div class="hiw-faq-a">Anchor uses MediaPipe FaceLandmarker with the full face_landmarker model, which tracks 478 facial landmarks. Accuracy is high in good lighting with the face properly centered in frame — which is why the Signal Quality Gate checks both before allowing a recording to proceed.</div>
+          <div class="hiw-faq-a">Baseline uses MediaPipe FaceLandmarker with the full face_landmarker model, which tracks 478 facial landmarks. Accuracy is high in good lighting with the face properly centered in frame — which is why the Signal Quality Gate checks both before allowing a recording to proceed.</div>
         </div>
         <div class="hiw-faq-item">
           <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">What if I wear glasses or have a beard? <span>+</span></div>
@@ -1781,7 +2027,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;heigh
         </div>
         <div class="hiw-faq-item">
           <div class="hiw-faq-q" onclick="this.parentElement.classList.toggle('open')">Does it work on mobile? <span>+</span></div>
-          <div class="hiw-faq-a">Anchor works on modern mobile browsers that support getUserMedia, Web Speech API, and WebAssembly. The MediaPipe models run on-device. Performance is best on recent hardware — the pose and face models are computationally intensive, so older phones may experience slower frame rates in the preview panels.</div>
+          <div class="hiw-faq-a">Baseline works on modern mobile browsers that support getUserMedia, Web Speech API, and WebAssembly. The MediaPipe models run on-device. Performance is best on recent hardware — the pose and face models are computationally intensive, so older phones may experience slower frame rates in the preview panels.</div>
         </div>
       </div>
     </div>
@@ -6550,6 +6796,589 @@ function _cancelNotifs(){
 (function _initNotifs(){
   if(_cfg.notifEnabled && Notification.permission === 'granted') _scheduleNotifs();
 })();
+
+/* ═══════════════════════════════════════════════════════
+   HEART MONITOR — Apple Watch via Web Bluetooth
+   ═══════════════════════════════════════════════════════ */
+
+// ── Overlay open / close ──────────────────────────────
+function goHeart() {
+  var el = document.getElementById('heart-overlay');
+  el.style.display = 'block';
+  el.style.animation = 'appIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards';
+  document.body.style.overflow = 'hidden';
+  heartOverlayDidOpen();
+}
+
+function closeHeart() {
+  heartBLE.disconnect();
+  heartState.stopDemo();
+  heartECG.stop();
+  heartSessionSave();
+  var el = document.getElementById('heart-overlay');
+  el.style.animation = 'appOut 0.35s ease forwards';
+  setTimeout(function() {
+    el.style.display = 'none';
+    el.style.animation = '';
+    document.body.style.overflow = '';
+  }, 330);
+}
+
+function heartOverlayDidOpen() {
+  // Size canvases to their containers
+  var ecgCanvas = document.getElementById('ecg-canvas');
+  ecgCanvas.width = ecgCanvas.parentElement.clientWidth;
+  ecgCanvas.height = 120;
+  var trendCanvas = document.getElementById('bpm-trend-canvas');
+  trendCanvas.width = trendCanvas.parentElement.clientWidth;
+  trendCanvas.height = 100;
+
+  heartECG.init(ecgCanvas);
+  heartTrend.init(trendCanvas);
+  heartBaseline.render();
+  heartHistory.render();
+  heartState.startDemo();
+  heartSession.startTime = Date.now();
+}
+
+function heartHistoryView() {
+  var panel = document.getElementById('heart-hist-panel');
+  var btn = document.getElementById('heart-hist-toggle-btn');
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    btn.textContent = '✕ Hide History';
+  } else {
+    panel.style.display = 'none';
+    btn.textContent = '📈 Heart History';
+  }
+}
+
+// ── Session tracking ──────────────────────────────────
+var heartSession = { startTime: 0, bpmSamples: [], hrvSamples: [] };
+
+function heartSessionSave() {
+  var duration = Math.round((Date.now() - heartSession.startTime) / 1000);
+  if (duration < 20 || heartSession.bpmSamples.length < 5) return;
+  var samples = heartSession.bpmSamples;
+  var avg = Math.round(samples.reduce(function(a,b){return a+b;},0) / samples.length);
+  var min = Math.min.apply(null, samples);
+  var max = Math.max.apply(null, samples);
+  var avgHrv = heartSession.hrvSamples.length
+    ? Math.round(heartSession.hrvSamples.reduce(function(a,b){return a+b;},0) / heartSession.hrvSamples.length)
+    : null;
+  heartHistory.save({
+    date: new Date().toLocaleDateString(),
+    time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+    durationSec: duration,
+    avgBPM: avg, minBPM: min, maxBPM: max, avgHRV: avgHrv,
+    source: heartState.isDemo ? 'Demo' : 'Apple Watch'
+  });
+  heartSession.bpmSamples = [];
+  heartSession.hrvSamples = [];
+}
+
+// ── BLE Connection Manager ────────────────────────────
+var heartBLE = {
+  device: null,
+  characteristic: null,
+
+  connect: function() {
+    if (!navigator.bluetooth) {
+      document.getElementById('ble-status-text').textContent = 'Web Bluetooth not supported. Use Chrome or Edge.';
+      return;
+    }
+    var btn = document.getElementById('ble-connect-btn');
+    btn.textContent = 'Searching…';
+    btn.classList.add('connecting');
+    document.getElementById('ble-orb').classList.add('searching');
+    document.getElementById('ble-status-text').textContent = 'Opening Bluetooth picker…';
+
+    navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] })
+      .then(function(device) {
+        heartBLE.device = device;
+        device.addEventListener('gattserverdisconnected', function() { heartBLE._onDisconnect(); });
+        document.getElementById('ble-status-text').textContent = 'Connecting to ' + (device.name || 'device') + '…';
+        document.getElementById('ble-device-name').textContent = device.name || 'Unknown Device';
+        return device.gatt.connect();
+      })
+      .then(function(server) { return server.getPrimaryService('heart_rate'); })
+      .then(function(service) { return service.getCharacteristic('heart_rate_measurement'); })
+      .then(function(char) {
+        heartBLE.characteristic = char;
+        char.addEventListener('characteristicvaluechanged', function(e) { heartBLE._onData(e); });
+        return char.startNotifications();
+      })
+      .then(function() {
+        heartState.stopDemo();
+        heartState.isDemo = false;
+        document.getElementById('ble-orb').classList.remove('searching');
+        document.getElementById('ble-orb').classList.add('connected');
+        document.getElementById('ble-status-text').textContent = 'Connected';
+        var btn2 = document.getElementById('ble-connect-btn');
+        btn2.textContent = 'Disconnect';
+        btn2.classList.remove('connecting');
+        btn2.classList.add('disconnect');
+        btn2.onclick = function() { heartBLE.disconnect(); };
+        document.getElementById('ble-demo-banner').style.display = 'none';
+        document.getElementById('spo2-value').textContent = '--';
+        document.getElementById('spo2-caveat').textContent = 'Apple Watch SpO₂ is locked in HealthKit. A BLE pulse oximeter (e.g. Nonin) would provide real values.';
+      })
+      .catch(function(err) {
+        document.getElementById('ble-orb').classList.remove('searching');
+        document.getElementById('ble-status-text').textContent =
+          err.name === 'NotFoundError' ? 'No device selected' : 'Connection failed — ' + err.message;
+        var btn3 = document.getElementById('ble-connect-btn');
+        btn3.textContent = 'Try Again';
+        btn3.classList.remove('connecting');
+      });
+  },
+
+  _onData: function(event) {
+    var v = event.target.value;
+    var flags = v.getUint8(0);
+    var isU16 = (flags & 0x01) !== 0;
+    var bpm = isU16 ? v.getUint16(1, true) : v.getUint8(1);
+    var offset = isU16 ? 3 : 2;
+    if (flags & 0x08) offset += 2; // skip Energy Expended
+    var rr = [];
+    if (flags & 0x10) {
+      while (offset + 1 < v.byteLength) {
+        rr.push(v.getUint16(offset, true) / 1024 * 1000); // → ms
+        offset += 2;
+      }
+    }
+    heartState.push(bpm, rr);
+  },
+
+  _onDisconnect: function() {
+    this.device = null;
+    this.characteristic = null;
+    document.getElementById('ble-orb').classList.remove('connected', 'searching');
+    document.getElementById('ble-status-text').textContent = 'Disconnected';
+    document.getElementById('ble-device-name').textContent = '—';
+    var btn = document.getElementById('ble-connect-btn');
+    btn.textContent = 'Reconnect';
+    btn.classList.remove('connecting', 'disconnect');
+    btn.onclick = function() { heartBLE.connect(); };
+    document.getElementById('ble-demo-banner').style.display = 'flex';
+    heartState.isDemo = true;
+    heartState.startDemo();
+  },
+
+  disconnect: function() {
+    if (this.characteristic) {
+      try { this.characteristic.stopNotifications(); } catch(e) {}
+    }
+    if (this.device && this.device.gatt && this.device.gatt.connected) {
+      this.device.gatt.disconnect();
+    } else {
+      this._onDisconnect();
+    }
+  }
+};
+
+// ── Heart State ───────────────────────────────────────
+var heartState = {
+  bpm: null,
+  rmssd: null,
+  rrBuffer: [],    // last 20 RR intervals in ms
+  bpmHistory: [],  // { ts, bpm, rmssd } — last 60 entries
+  isDemo: true,
+  _demoTimer: null,
+  _demoWalk: 68,
+
+  push: function(bpm, rrIntervals) {
+    this.bpm = bpm;
+    heartSession.bpmSamples.push(bpm);
+    if (rrIntervals && rrIntervals.length) {
+      for (var i = 0; i < rrIntervals.length; i++) {
+        this.rrBuffer.push(rrIntervals[i]);
+      }
+      if (this.rrBuffer.length > 20) this.rrBuffer = this.rrBuffer.slice(-20);
+      this.rmssd = this._computeRMSSD();
+      if (this.rmssd !== null) heartSession.hrvSamples.push(this.rmssd);
+    }
+    this.bpmHistory.push({ ts: Date.now(), bpm: bpm, rmssd: this.rmssd });
+    if (this.bpmHistory.length > 60) this.bpmHistory = this.bpmHistory.slice(-60);
+    updateHeartUI();
+  },
+
+  _computeRMSSD: function() {
+    var rr = this.rrBuffer;
+    if (rr.length < 3) return null;
+    var sumSq = 0;
+    for (var i = 1; i < rr.length; i++) {
+      var d = rr[i] - rr[i-1];
+      sumSq += d * d;
+    }
+    return Math.round(Math.sqrt(sumSq / (rr.length - 1)));
+  },
+
+  startDemo: function() {
+    if (this._demoTimer) return;
+    var self = this;
+    this._demoWalk = 68;
+    this._demoTimer = setInterval(function() {
+      // Random walk BPM
+      self._demoWalk += (Math.random() - 0.5) * 3;
+      self._demoWalk = Math.max(58, Math.min(82, self._demoWalk));
+      var bpm = Math.round(self._demoWalk);
+      // Simulate 2-3 RR intervals per second based on BPM
+      var rrMs = 60000 / bpm;
+      var rr = [
+        rrMs + (Math.random() - 0.5) * 40,
+        rrMs + (Math.random() - 0.5) * 40
+      ];
+      self.push(bpm, rr);
+    }, 1000);
+  },
+
+  stopDemo: function() {
+    if (this._demoTimer) {
+      clearInterval(this._demoTimer);
+      this._demoTimer = null;
+    }
+  }
+};
+
+// ── ECG Canvas Animator ───────────────────────────────
+var heartECG = {
+  canvas: null,
+  ctx: null,
+  raf: null,
+  t0: 0,
+  beatInterval: 857, // ms (≈70 BPM)
+  template: null,
+
+  init: function(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.t0 = performance.now();
+    this.template = this._buildTemplate();
+    this.beatInterval = 857;
+    if (this.raf) cancelAnimationFrame(this.raf);
+    this.raf = requestAnimationFrame(this._render.bind(this));
+  },
+
+  setBPM: function(bpm) {
+    if (bpm > 20 && bpm < 250) this.beatInterval = 60000 / bpm;
+  },
+
+  // Synthetic PQRST using McSharry Gaussian model
+  _buildTemplate: function() {
+    var N = 300;
+    // [theta_radians, amplitude, width_radians]
+    var comps = [
+      [-1.22, 0.25,  0.25],  // P
+      [-0.26, -0.10, 0.10],  // Q
+      [ 0.00,  1.00, 0.10],  // R
+      [ 0.26, -0.35, 0.10],  // S
+      [ 1.74,  0.35, 0.40]   // T
+    ];
+    var tpl = [];
+    for (var i = 0; i < N; i++) {
+      var theta = -Math.PI + (2 * Math.PI * i / N);
+      var y = 0;
+      for (var j = 0; j < comps.length; j++) {
+        var d = theta - comps[j][0];
+        y += comps[j][1] * Math.exp(-(d * d) / (2 * comps[j][2] * comps[j][2]));
+      }
+      tpl.push(y);
+    }
+    return tpl;
+  },
+
+  _render: function(now) {
+    var elapsed = now - this.t0;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
+    var W = canvas.width;
+    var H = canvas.height;
+    var SPEED = 120; // px/s
+    var msPerPx = 1000 / SPEED;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid
+    ctx.strokeStyle = 'rgba(0,229,200,0.06)';
+    ctx.lineWidth = 1;
+    var gs = 20;
+    for (var gx = 0; gx < W; gx += gs) {
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+    }
+    for (var gy = 0; gy < H; gy += gs) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+    }
+
+    // Waveform
+    ctx.beginPath();
+    ctx.strokeStyle = '#00e5c8';
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = 'rgba(0,229,200,0.55)';
+    ctx.shadowBlur = 7;
+    var first = true;
+    var N = this.template.length;
+    for (var px = 0; px < W; px++) {
+      var t_ms = elapsed - (W - 1 - px) * msPerPx;
+      if (t_ms < 0) continue;
+      // Phase within beat cycle
+      var phase = ((t_ms % this.beatInterval) / this.beatInterval + 1) % 1;
+      var tIdx = Math.min(Math.floor(phase * N), N - 1);
+      var yNorm = this.template[tIdx]; // approx -0.35 to 1.0
+      var cy = H * 0.55 - yNorm * H * 0.35;
+      if (first) { ctx.moveTo(px, cy); first = false; }
+      else ctx.lineTo(px, cy);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Glowing "now" cursor line
+    ctx.strokeStyle = 'rgba(239,68,68,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(W - 1, 0);
+    ctx.lineTo(W - 1, H);
+    ctx.stroke();
+
+    this.raf = requestAnimationFrame(this._render.bind(this));
+  },
+
+  stop: function() {
+    if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; }
+  }
+};
+
+// ── BPM Trend Chart ───────────────────────────────────
+var heartTrend = {
+  canvas: null,
+  ctx: null,
+  _raf: null,
+
+  init: function(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this._raf = requestAnimationFrame(this._loop.bind(this));
+  },
+
+  _loop: function() {
+    this.draw();
+    this._raf = requestAnimationFrame(this._loop.bind(this));
+  },
+
+  draw: function() {
+    var history = heartState.bpmHistory;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
+    var W = canvas.width;
+    var H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    var Y_MIN = 40, Y_MAX = 180;
+    var toY = function(bpm) { return H - (bpm - Y_MIN) / (Y_MAX - Y_MIN) * H; };
+
+    // Baseline zone
+    var bl = heartBaseline.data;
+    if (bl && bl.restingBPM) {
+      var blY1 = toY(bl.restingBPM + 12);
+      var blY2 = toY(bl.restingBPM - 12);
+      ctx.fillStyle = 'rgba(0,229,200,0.07)';
+      ctx.fillRect(0, blY1, W, blY2 - blY1);
+    }
+
+    if (history.length < 2) {
+      ctx.fillStyle = 'rgba(107,114,128,0.4)';
+      ctx.font = '11px Space Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('Waiting for data…', W / 2, H / 2);
+      ctx.textAlign = 'left';
+      return;
+    }
+
+    // Smooth line
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(239,68,68,0.8)';
+    ctx.lineWidth = 2;
+    ctx.shadowColor = 'rgba(239,68,68,0.4)';
+    ctx.shadowBlur = 5;
+    for (var i = 0; i < history.length; i++) {
+      var x = i / (history.length - 1) * W;
+      var y = toY(history[i].bpm);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Latest dot
+    var last = history[history.length - 1];
+    var lx = W - 4;
+    var ly = toY(last.bpm);
+    ctx.beginPath();
+    ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ef4444';
+    ctx.shadowColor = 'rgba(239,68,68,0.7)';
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Stats
+    var bpms = history.map(function(h) { return h.bpm; });
+    var min = Math.min.apply(null, bpms);
+    var max = Math.max.apply(null, bpms);
+    var avg = Math.round(bpms.reduce(function(a,b){return a+b;},0) / bpms.length);
+    var hrvs = history.map(function(h){return h.rmssd;}).filter(function(v){return v !== null;});
+    var avgHrv = hrvs.length ? Math.round(hrvs.reduce(function(a,b){return a+b;},0)/hrvs.length) : null;
+
+    document.getElementById('trend-min').textContent = min;
+    document.getElementById('trend-avg').textContent = avg;
+    document.getElementById('trend-max').textContent = max;
+    document.getElementById('trend-hrv-avg').textContent = avgHrv !== null ? avgHrv : '--';
+  },
+
+  stop: function() {
+    if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+  }
+};
+
+// ── Heart Baseline ────────────────────────────────────
+var heartBaseline = {
+  data: null,
+  _KEY: 'sc_heart_baseline',
+
+  load: function() {
+    try { this.data = JSON.parse(localStorage.getItem(this._KEY) || 'null'); } catch(e) {}
+    return this.data;
+  },
+
+  save: function() {
+    if (!heartState.bpm) { alert('No heart rate data yet. Let the monitor run for a moment first.'); return; }
+    this.data = {
+      date: new Date().toLocaleDateString(),
+      restingBPM: heartState.bpm,
+      avgHRV: heartState.rmssd,
+      savedAt: Date.now()
+    };
+    try { localStorage.setItem(this._KEY, JSON.stringify(this.data)); } catch(e) {}
+    this.render();
+  },
+
+  render: function() {
+    this.load();
+    var el = document.getElementById('heart-baseline-content');
+    if (!this.data) {
+      el.innerHTML = '<div style="font-family:\'Space Mono\',monospace;font-size:0.72rem;color:var(--muted);">No heart baseline saved yet. Let the monitor run for a minute, then save your resting readings as a personal reference.</div>';
+      return;
+    }
+    var bpmDelta = heartState.bpm ? heartState.bpm - this.data.restingBPM : null;
+    var deltaHtml = '';
+    if (bpmDelta !== null) {
+      var cls = Math.abs(bpmDelta) <= 8 ? 'ok' : (bpmDelta > 0 ? 'up' : 'down');
+      var sign = bpmDelta > 0 ? '+' : '';
+      deltaHtml = '<span class="heart-bl-delta ' + cls + '">' + sign + bpmDelta + ' BPM</span>';
+    }
+    var hrvDelta = '';
+    if (heartState.rmssd !== null && this.data.avgHRV) {
+      var hd = heartState.rmssd - this.data.avgHRV;
+      var hcls = Math.abs(hd) <= 8 ? 'ok' : (hd > 0 ? 'down' : 'up');
+      var hs = hd > 0 ? '+' : '';
+      hrvDelta = '<span class="heart-bl-delta ' + hcls + '">' + hs + hd + ' ms</span>';
+    }
+    el.innerHTML =
+      '<div class="heart-bl-row"><span class="heart-bl-label">Resting BPM</span><div style="display:flex;align-items:center;gap:0.5rem;"><span class="heart-bl-value">' + this.data.restingBPM + '</span>' + deltaHtml + '</div></div>' +
+      '<div class="heart-bl-row"><span class="heart-bl-label">Baseline HRV</span><div style="display:flex;align-items:center;gap:0.5rem;"><span class="heart-bl-value">' + (this.data.avgHRV ? this.data.avgHRV + ' ms' : '—') + '</span>' + hrvDelta + '</div></div>' +
+      '<div class="heart-bl-row"><span class="heart-bl-label">Saved</span><span class="heart-bl-value" style="font-size:0.85rem;font-family:\'DM Sans\',sans-serif;">' + this.data.date + '</span></div>';
+  }
+};
+
+// ── Heart History ─────────────────────────────────────
+var heartHistory = {
+  _KEY: 'sc_heart_hist',
+  _entries: [],
+
+  load: function() {
+    try { this._entries = JSON.parse(localStorage.getItem(this._KEY) || '[]'); } catch(e) { this._entries = []; }
+  },
+
+  save: function(entry) {
+    this.load();
+    this._entries.unshift(entry);
+    if (this._entries.length > 50) this._entries = this._entries.slice(0, 50);
+    try { localStorage.setItem(this._KEY, JSON.stringify(this._entries)); } catch(e) {}
+  },
+
+  render: function() {
+    this.load();
+    var el = document.getElementById('heart-hist-entries');
+    if (!this._entries.length) {
+      el.innerHTML = '<div class="heart-hist-empty">No heart sessions saved yet.</div>';
+      return;
+    }
+    el.innerHTML = this._entries.map(function(e) {
+      return '<div class="heart-hist-entry">' +
+        '<div class="heart-hist-date">' + e.date + '<br>' + e.time + '</div>' +
+        '<div class="heart-hist-bpm">' + e.avgBPM + '</div>' +
+        '<div class="heart-hist-meta">' +
+          'Range: ' + e.minBPM + '–' + e.maxBPM + ' BPM<br>' +
+          (e.avgHRV ? 'HRV: ' + e.avgHRV + ' ms · ' : '') +
+          Math.round(e.durationSec / 60) + 'm · ' + e.source +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+};
+
+// ── Main UI Update ────────────────────────────────────
+function updateHeartUI() {
+  var bpm = heartState.bpm;
+  var rmssd = heartState.rmssd;
+
+  if (bpm !== null) {
+    document.getElementById('bpm-value').textContent = bpm;
+    heartECG.setBPM(bpm);
+
+    // Heartbeat animation
+    var path = document.getElementById('bpm-heart-path');
+    path.classList.remove('beating');
+    void path.offsetWidth; // reflow
+    path.classList.add('beating');
+
+    // Zone pill
+    var pill = document.getElementById('bpm-zone-pill');
+    var zone, cls;
+    if (bpm < 60)       { zone = 'Low'; cls = 'zone-rest'; }
+    else if (bpm < 100) { zone = 'Resting'; cls = 'zone-rest'; }
+    else if (bpm < 130) { zone = 'Fat Burn'; cls = 'zone-fat'; }
+    else if (bpm < 160) { zone = 'Cardio'; cls = 'zone-cardio'; }
+    else                { zone = 'Peak'; cls = 'zone-peak'; }
+    pill.textContent = zone;
+    pill.className = 'bpm-zone-pill ' + cls;
+
+    // Baseline delta
+    var bl = heartBaseline.data;
+    var deltaEl = document.getElementById('bpm-baseline-delta');
+    if (bl && bl.restingBPM) {
+      var d = bpm - bl.restingBPM;
+      deltaEl.textContent = (d >= 0 ? '+' : '') + d + ' vs baseline';
+    } else {
+      deltaEl.textContent = '';
+    }
+  }
+
+  if (rmssd !== null) {
+    document.getElementById('hrv-value').textContent = rmssd;
+    // Bar: 0–80ms range
+    var pct = Math.min(rmssd / 80 * 100, 100);
+    document.getElementById('hrv-bar-fill').style.width = pct + '%';
+    document.getElementById('hrv-rr-count').textContent =
+      heartState.rrBuffer.length + ' RR intervals · RMSSD';
+  } else if (heartState.rrBuffer.length > 0) {
+    document.getElementById('hrv-rr-count').textContent =
+      'Collecting RR intervals (' + heartState.rrBuffer.length + '/3 min)…';
+  }
+
+  heartBaseline.render();
+}
 </script>
 </body>
 </html>
