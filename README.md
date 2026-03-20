@@ -1,5 +1,5 @@
 [baseline-sush.vercel.app](https://baseline-sush.vercel.app)
 
-Health&Wellness 3rd Place @ Divergent Teams' Boston II Hackathon 2026
+3rd Place @ Divergent Teams' Boston II Hackathon 2026 - Health & Wellness Track
 
 Created by Sushant Santhosh
