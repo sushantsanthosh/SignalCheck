@@ -4875,14 +4875,15 @@ function populateDemoHistory(){
     '2026-01-17': 'mild', '2026-01-18': 'strong',
     '2026-01-26': 'mild',
     '2026-02-05': 'mild', '2026-02-06': 'strong', '2026-02-07': 'mild',
-    '2026-02-18': 'strong', '2026-02-19': 'mild'
+    '2026-02-18': 'strong', '2026-02-19': 'mild',
+    '2026-03-09': 'mild', '2026-03-10': 'strong', '2026-03-11': 'strong', '2026-03-12': 'mild'
   };
 
   const times = ['7:42 AM','8:03 AM','8:19 AM','8:47 AM','9:12 AM','9:31 AM',
                  '9:58 AM','10:14 AM','10:38 AM','6:24 PM','7:08 PM'];
 
   const startDate = new Date('2026-01-01T00:00:00');
-  const today = new Date(); today.setHours(23,59,59,0);
+  const today = new Date('2026-03-21T23:59:59');
 
   const entries = [];
   const cur = new Date(startDate);
